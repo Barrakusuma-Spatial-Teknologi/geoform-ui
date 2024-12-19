@@ -1,22 +1,29 @@
+import { definePreset } from "@primevue/themes"
+import Aura from "@primevue/themes/aura"
+import mkcert from "vite-plugin-mkcert"
+import { pwa } from "./config/pwa"
 import { appDescription } from "./constants"
 
 export default defineNuxtConfig({
   modules: [
     "@vueuse/nuxt",
-    "@sidebase/nuxt-auth",
+    // "@sidebase/nuxt-auth",
     "@nuxtjs/tailwindcss",
     "@pinia/nuxt",
     "@nuxtjs/color-mode",
     "@nuxt/image",
+    "@vite-pwa/nuxt",
     "@nuxt/eslint",
-    // "radix-vue/nuxt",
+    "@primevue/nuxt-module",
+    "@morev/vue-transitions/nuxt",
+    "@vee-validate/nuxt",
   ],
 
   plugins: [
     "~/plugins/forbidden-handler",
   ],
 
-  ssr: true,
+  ssr: false,
 
   devtools: {
     enabled: true,
@@ -73,6 +80,12 @@ export default defineNuxtConfig({
     databaseUrl: "",
     secret: "",
   },
+  devServer: {
+    https: {
+      cert: "./certs/cert.pem",
+      key: "./certs/dev.pem",
+    },
+  },
 
   future: {
     compatibilityVersion: 4,
@@ -101,47 +114,13 @@ export default defineNuxtConfig({
     },
   },
 
-  auth: {
-    provider: {
-      type: "local",
-      endpoints: {
-        getSession: { path: "/currentUser" },
-        signIn: {
-          path: "/signin",
-          method: "post",
-        },
-      },
-      pages: {
-        login: "/protected",
-      },
-      refresh: {
-        isEnabled: true,
-        endpoint: {
-          path: "/refresh",
-          method: "post",
-        },
-        signInResponseRefreshTokenPointer: "/token/refreshToken",
-        refreshRequestTokenPointer: "/token/refreshToken",
-        maxAgeInSeconds: 24 * 60 * 60,
-      },
-      token: {
-        maxAgeInSeconds: 60 * 5,
-        sameSiteAttribute: "lax",
-        signInResponseTokenPointer: "/token/accessToken",
-      },
-      session: {
-        dataType: {
-          username: "string",
-          roleName: "string",
-          isAdmin: "boolean",
-        },
-      },
-    },
-    globalAppMiddleware: true,
-    session: {
-      enableRefreshPeriodically: 1000 * 60 * 3,
-      enableRefreshOnWindowFocus: true,
-    },
+  vite: {
+    plugins: [
+      mkcert({
+        savePath: "./certs", // save the generated certificate into certs directory
+        force: true, // force generation of certs even without setting https property in the vite config
+      }),
+    ],
   },
 
   eslint: {
@@ -150,6 +129,81 @@ export default defineNuxtConfig({
       nuxt: {
         sortConfigKeys: true,
       },
+    },
+  },
+
+  // auth: {
+  //   provider: {
+  //     type: "local",
+  //     endpoints: {
+  //       getSession: {path: "/currentUser"},
+  //       signIn: {
+  //         path: "/signin",
+  //         method: "post",
+  //       },
+  //     },
+  //     pages: {
+  //       login: "/protected",
+  //     },
+  //     refresh: {
+  //       isEnabled: true,
+  //       endpoint: {
+  //         path: "/refresh",
+  //         method: "post",
+  //       },
+  //       signInResponseRefreshTokenPointer: "/token/refreshToken",
+  //       refreshRequestTokenPointer: "/token/refreshToken",
+  //       maxAgeInSeconds: 24 * 60 * 60,
+  //     },
+  //     token: {
+  //       maxAgeInSeconds: 60 * 5,
+  //       sameSiteAttribute: "lax",
+  //       signInResponseTokenPointer: "/token/accessToken",
+  //     },
+  //     session: {
+  //       dataType: {
+  //         username: "string",
+  //         roleName: "string",
+  //         isAdmin: "boolean",
+  //       },
+  //     },
+  //   },
+  //   globalAppMiddleware: true,
+  //   session: {
+  //     enableRefreshPeriodically: 1000 * 60 * 3,
+  //     enableRefreshOnWindowFocus: true,
+  //   },
+  // },
+
+  primevue: {
+    options: {
+      theme: {
+        preset: definePreset(Aura),
+        options: {
+          prefix: "p",
+          darkModeSelector: ".dark",
+          // cssLayer: false,
+        },
+      },
+      // unstyled: true,
+      // pt: {
+      //   button: {
+      //     root: "btn",
+      //   },
+      // },
+    },
+  },
+
+  pwa,
+  veeValidate: {
+    // disable or enable auto imports
+    autoImports: true,
+    // Use different names for components
+    componentNames: {
+      Form: "VeeForm",
+      Field: "VeeField",
+      FieldArray: "VeeFieldArray",
+      ErrorMessage: "VeeErrorMessage",
     },
   },
 })
