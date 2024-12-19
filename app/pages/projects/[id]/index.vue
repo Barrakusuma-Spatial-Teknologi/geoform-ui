@@ -75,7 +75,7 @@ onMounted(() => {
           Fields
         </div>
         <div class="w-full grow basis-0 overflow-y-scroll ">
-          <template v-for="field in fields" :key="field.key">
+          <template v-for="(field, fieldIndex) in fields" :key="field.key">
             <div class="mb-4 box-border w-full space-y-2 rounded-lg bg-surface-800 px-4 py-2">
               <IftaLabel fluid class="">
                 <InputText :id="field.key" v-model.lazy="field.name" size="small" fluid />
@@ -144,7 +144,11 @@ onMounted(() => {
                   <label for="ingredient1"> Required </label>
                 </div>
 
-                <Button size="small" variant="text" severity="secondary">
+                <Button
+                  size="small" variant="text" severity="secondary" @click="() => {
+                    fields.splice(fieldIndex, 1)
+                  }"
+                >
                   <i class="i-[solar--trash-bin-trash-bold] text-lg" />
                 </Button>
               </div>

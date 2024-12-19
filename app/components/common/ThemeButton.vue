@@ -16,19 +16,15 @@ watch(color, () => {
 <template>
   <Button
     :severity="color ? 'secondary' : 'warn'"
+    class="!text-2xl"
+    size="small"
     variant="text" @click="() => {
       color = !color
     }"
   >
-    <i v-if="color" class="swap-on i-[solar--moon-bold]" />
-    <i v-else class="swap-off  i-[solar--sun-bold]" />
+    <i v-if="color" class="i-[solar--moon-bold]" />
+    <i v-else class="i-[solar--sun-bold]" />
   </Button>
-
-<!--  <label class="swap swap-rotate text-2xl"> -->
-<!--    <input v-model="color" value="light" type="checkbox"> -->
-<!--    <i class="swap-on i-[solar&#45;&#45;moon-bold]" /> -->
-<!--    <i class="swap-off text-warning i-[solar&#45;&#45;sun-bold]" /> -->
-<!--  </label> -->
 </template>
 
 <style scoped>

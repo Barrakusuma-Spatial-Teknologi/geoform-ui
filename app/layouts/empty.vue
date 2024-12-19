@@ -1,3 +1,8 @@
+<script setup lang="ts">
+</script>
+
 <template>
-  <slot />
+  <div class="relative size-full">
+    <slot />
+  </div>
 </template>

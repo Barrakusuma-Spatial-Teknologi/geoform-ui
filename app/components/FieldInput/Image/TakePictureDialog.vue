@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import { useToast } from "primevue"
+
 const emits = defineEmits<{
   captured: [image: string]
   close: []
 }>()
 
+const toast = useToast()
 const videoRef = ref<HTMLVideoElement>()
 
 const selectedCamera = ref<string>()
@@ -15,12 +18,29 @@ watch(selectedCamera, async () => {
 
   // selectedCamera.value = cameraOptions.value.find((c) => c.value )
   videoRef.value?.pause()
-  videoRef.value!.srcObject = await navigator.mediaDevices.getUserMedia({
-    video: {
-      deviceId: selectedCamera.value as string,
-    },
-  })
-  videoRef.value?.play()
+  try {
+    videoRef.value!.srcObject = await navigator.mediaDevices.getUserMedia({
+      video: {
+        deviceId: selectedCamera.value as string,
+      },
+    })
+  }
+  catch {
+    toast.add({
+      detail: "Failed to use camera, reverting to the default",
+      severity: "error",
+      life: 3000,
+    })
+    selectedCamera.value = cameraOptions.value[0]!.value
+    videoRef.value!.srcObject = await navigator.mediaDevices.getUserMedia({
+      video: {
+        deviceId: selectedCamera.value as string,
+      },
+    })
+  }
+  finally {
+    videoRef.value?.play()
+  }
 })
 
 function captureCamera() {

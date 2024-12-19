@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { TransitionFade } from "@morev/vue-transitions"
-
 const image = defineModel<string>("image")
 
 const takePictureVisible = ref(false)
@@ -34,21 +32,19 @@ onChange((files) => {
 <template>
   <div class="flex w-full flex-col">
     <Teleport to="body">
-      <TransitionFade>
-        <div v-if="takePictureVisible" id="capture-image" class="absolute left-0 top-0 z-[99999999999] size-full overflow-y-auto">
-          <div class="box-border flex size-full basis-0 flex-col overflow-y-auto rounded-lg bg-surface-800 p-4">
-            <FieldInputImageTakePictureDialog
-              @captured="(img) => {
-                image = img
-                takePictureVisible = false
-              }"
-              @close="() => {
-                takePictureVisible = false
-              }"
-            />
-          </div>
-        </div>
-      </TransitionFade>
+      <Drawer v-model:visible="takePictureVisible" position="full">
+        <template #container="{ closeCallback }">
+          <FieldInputImageTakePictureDialog
+            @captured="(img) => {
+              image = img
+              takePictureVisible = false
+            }"
+            @close="() => {
+              closeCallback()
+            }"
+          />
+        </template>
+      </Drawer>
     </Teleport>
 
     <div v-if="image != null" class="flex min-h-[100px] w-[250px] items-center justify-center">

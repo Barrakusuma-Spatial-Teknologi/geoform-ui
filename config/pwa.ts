@@ -1,16 +1,10 @@
-import process from "node:process"
 import type { ModuleOptions } from "@vite-pwa/nuxt"
+import process from "node:process"
 import { appDescription, appName } from "../constants/index"
-
-const scope = "/"
 
 export const pwa: ModuleOptions = {
   registerType: "autoUpdate",
-  scope,
-  base: scope,
   manifest: {
-    id: scope,
-    scope,
     name: appName,
     short_name: appName,
     description: appDescription,
@@ -37,7 +31,8 @@ export const pwa: ModuleOptions = {
   workbox: {
     globPatterns: ["**/*.{js,css,html,txt,png,ico,svg}"],
     navigateFallbackDenylist: [/^\/api\//],
-    navigateFallback: "/",
+    navigateFallback: undefined,
+    navigateFallbackAllowlist: [/^\/$/],
     cleanupOutdatedCaches: true,
     runtimeCaching: [
       {
@@ -71,9 +66,11 @@ export const pwa: ModuleOptions = {
     ],
   },
   registerWebManifestInRouteRules: true,
+  strategies: "generateSW",
+  injectRegister: "auto",
   writePlugin: true,
   devOptions: {
     enabled: process.env.VITE_PLUGIN_PWA === "true",
-    navigateFallback: scope,
+    navigateFallback: "/",
   },
 }

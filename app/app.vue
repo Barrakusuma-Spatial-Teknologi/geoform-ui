@@ -4,23 +4,36 @@ import { appName } from "~~/constants"
 useHead({
   title: appName,
 })
+
+const blocked = ref(false)
 </script>
 
 <template>
+  <NuxtPwaManifest />
+  <Toast />
+  <BlockUI :blocked="blocked" full-screen />
+
   <NuxtLayout>
     <NuxtPage />
   </NuxtLayout>
 </template>
 
 <style>
-@import url("@fontsource-variable/dm-sans");
-
 html,
 body,
 #__nuxt {
   height: 100vh;
   margin: 0;
   padding: 0;
-  font-family: "DM Sans Variable", "sans serif";
+}
+
+.page-enter-active,
+.page-leave-active {
+  transition: all 0.4s;
+}
+.page-enter-from,
+.page-leave-to {
+  opacity: 0;
+  filter: blur(1rem);
 }
 </style>

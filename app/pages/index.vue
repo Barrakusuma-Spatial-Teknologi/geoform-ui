@@ -8,9 +8,6 @@ import { useProjectData } from "~/composables/project/project-data"
 
 const { projects } = useProjectStore()
 const projectOptionPopoverRef = ref<InstanceType<typeof Popover>>()
-function openOption() {
-  projectOptionPopoverRef.value?.open()
-}
 
 function createNew() {
   navigateTo("/projects/0")
@@ -24,10 +21,16 @@ function startProject(index: number) {
   navigateTo(`/projects/${index}/survey`)
 }
 
-usePermission("geolocation")
-usePermission("camera")
+const geoLocationPerm = usePermission("geolocation")
+const cameraPerm = usePermission("camera")
 
 const selectedProjectIndex = ref<number>()
+function deleteProject() {
+  if (selectedProjectIndex.value == null) {
+    return
+  }
+  projects.value.splice(selectedProjectIndex.value, 1)
+}
 async function exportGeoJSON() {
   if (selectedProjectIndex.value == null) {
     return
@@ -63,6 +66,8 @@ async function exportGeoJSON() {
   link.click()
   document.body.removeChild(link)
 }
+
+onMounted(() => {})
 </script>
 
 <template>
@@ -72,12 +77,14 @@ async function exportGeoJSON() {
         <li @click="exportGeoJSON">
           Export
         </li>
-        <li>Delete</li>
+        <li @click="deleteProject">
+          Delete
+        </li>
       </ul>
     </Popover>
 
     <div class="box-border grow basis-0 overflow-y-auto px-6 pb-6">
-      <ul class="space-y-4">
+      <ul v-if="projects.length > 0" class="space-y-4">
         <template v-for="(project, index) in projects" :key="project.name">
           <li class="relative box-border w-full rounded-lg bg-surface-300 px-4 py-2 dark:bg-surface-800">
             <div class="mb-1 flex w-full items-center justify-between font-bold">
@@ -91,7 +98,7 @@ async function exportGeoJSON() {
 
             <div class="flex w-full items-center justify-between">
               <div class="text-xs">
-                {{ project.lastModified }}
+                {{ new Date(project.lastModified).toLocaleString('id-ID') }}
               </div>
 
               <Button
@@ -103,17 +110,18 @@ async function exportGeoJSON() {
                 <i class="i-[solar--menu-dots-bold] rotate-90" />
               </Button>
             </div>
-
-            <!--            <button -->
-            <!--              text severity="secondary" size="small" class="absolute right-2 top-2" @click="(e) => { -->
-            <!--                projectOptionPopoverRef?.toggle(e) -->
-            <!--              }" -->
-            <!--            > -->
-            <!--              <i class="i-[solar&#45;&#45;menu-dots-bold] rotate-90" /> -->
-            <!--            </button> -->
           </li>
         </template>
       </ul>
+      <div v-else class="flex size-full flex-col items-center justify-center" @click="createNew">
+        <div class="mb-2 flex items-center text-[100px]">
+          <i class="i-[solar--folder-open-line-duotone] text-surface-700" />
+        </div>
+
+        <div class="text-sm">
+          No project yet, click to create new project
+        </div>
+      </div>
     </div>
 
     <div class="box-border flex items-center justify-center pb-8">

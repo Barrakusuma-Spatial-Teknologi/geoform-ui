@@ -30,6 +30,8 @@ export default defineNuxtConfig({
   },
 
   app: {
+    pageTransition: { name: "page", mode: "out-in" },
+    layoutTransition: { name: "page", mode: "out-in" },
     head: {
       viewport: "width=device-width,initial-scale=1",
       link: [
@@ -70,8 +72,8 @@ export default defineNuxtConfig({
   ],
 
   colorMode: {
-    preference: "forest",
-    fallback: "forest",
+    preference: "system",
+    fallback: "light",
     dataValue: "theme",
     classSuffix: "",
   },
@@ -111,6 +113,11 @@ export default defineNuxtConfig({
       crawlLinks: false,
       routes: ["/"],
       ignore: ["/", "/hi"],
+    },
+  },
+  nitro: {
+    prerender: {
+      routes: ["/"],
     },
   },
 

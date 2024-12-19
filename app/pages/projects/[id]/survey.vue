@@ -78,11 +78,23 @@ watch(coords, () => {
 })
 
 function backToHome() {
-  navigateTo("/")
+  navigateTo("/", {
+    replace: true,
+  })
 }
 
 const showDataVisible = ref(false)
+
+onBeforeUnmount(() => {
+  if (map == null) {
+    return
+  }
+
+  map.remove()
+})
 onMounted(async () => {
+  await requestPermissions()
+
   map = new MglMap({
     container: "map",
     refreshExpiredTiles: false,
@@ -174,9 +186,12 @@ onMounted(async () => {
 
 <template>
   <div class="relative flex size-full flex-col">
-    <Dialog v-model:visible="formVisible" pt:root:class="!border-0 !bg-transparent" pt:mask:class="backdrop-blur-sm">
+    <Drawer
+      v-model:visible="formVisible" pt:root:class="!border-0 !bg-transparent" class="!h-[90vh]"
+      pt:mask:class="backdrop-blur-sm" position="bottom"
+    >
       <template #container="{ closeCallback }">
-        <div v-if="selectedProject != null" class="h-screen w-[90vw]">
+        <div v-if="selectedProject != null" class="size-full">
           <FieldInputForm
             :fields="selectedProject?.fields ?? []"
             :coordinate="{
@@ -195,7 +210,7 @@ onMounted(async () => {
           />
         </div>
       </template>
-    </Dialog>
+    </Drawer>
 
     <Drawer v-model:visible="showDataVisible" position="bottom" class="!h-[90vh]">
       <template #header>
