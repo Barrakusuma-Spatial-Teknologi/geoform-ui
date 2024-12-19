@@ -29,7 +29,7 @@ export const pwa: ModuleOptions = {
     ],
   },
   workbox: {
-    globPatterns: ["**/*.{js,css,html,txt,png,ico,svg}"],
+    globPatterns: ["**/*.{js,css,html,txt,png,ico,svg,woff2}"],
     navigateFallbackDenylist: [/^\/api\//],
     navigateFallback: undefined,
     navigateFallbackAllowlist: [/^\/$/],
