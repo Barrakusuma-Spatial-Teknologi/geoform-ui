@@ -1,42 +1,88 @@
 <script setup lang="ts">
 import type { FeatureCollection } from "geojson"
 import type { Popover } from "primevue"
-import { useProjectStore } from "~/composables/project"
+
+import { UseTimeAgo } from "@vueuse/components"
+import ProjectOptionDialog from "~/components/ProjectOptionDialog.vue"
+import { useProjectStore } from "~/composables/project/project"
 import { useProjectData } from "~/composables/project/project-data"
 
 // const projects = ref<Project[]>(dummyProject)
 
-const { projects } = useProjectStore()
+definePageMeta({
+  backTo: "logout",
+})
+
+const {
+  projects,
+  remove,
+} = useProjectStore()
 const projectOptionPopoverRef = ref<InstanceType<typeof Popover>>()
+const projectOptionVisible = ref(false)
 
 function createNew() {
-  navigateTo("/projects/0")
+  navigateTo("/projects/new")
 }
 
-function openProject(index: number) {
+function openProject(index: string) {
   navigateTo(`/projects/${index}`)
 }
 
-function startProject(index: number) {
+function startProject(index: string) {
   navigateTo(`/projects/${index}/survey`)
 }
 
-const geoLocationPerm = usePermission("geolocation")
-const cameraPerm = usePermission("camera")
+const _geoLocationPerm = usePermission("geolocation")
+const _cameraPerm = usePermission("camera")
 
+const selectedProjectId = ref<string>()
 const selectedProjectIndex = ref<number>()
-function deleteProject() {
+const selectedProjectIsCollab = computed(() => {
   if (selectedProjectIndex.value == null) {
-    return
+    return "Project option"
   }
-  projects.value.splice(selectedProjectIndex.value, 1)
-}
-async function exportGeoJSON() {
-  if (selectedProjectIndex.value == null) {
-    return
+
+  if (projects.value == null) {
+    return "Project option"
   }
 
   const project = projects.value[selectedProjectIndex.value]
+  return project?.isCollaboration
+})
+const selectedProjectName = computed(() => {
+  if (selectedProjectIndex.value == null) {
+    return "Project option"
+  }
+
+  if (projects.value == null) {
+    return "Project option"
+  }
+
+  const project = projects.value[selectedProjectIndex.value]
+  return project?.name
+})
+
+async function deleteProject() {
+  if (selectedProjectId.value == null) {
+    return
+  }
+
+  await remove(selectedProjectId.value)
+  projectOptionPopoverRef.value?.hide()
+}
+
+const shareProjectVisible = ref(false)
+
+async function exportGeoJSON() {
+  if (selectedProjectId.value == null) {
+    return
+  }
+
+  if (projects.value == null) {
+    return
+  }
+
+  const project = projects.value[selectedProjectIndex.value!]
   if (project == null) {
     return
   }
@@ -48,11 +94,8 @@ async function exportGeoJSON() {
     features: data.map((item) => ({
       type: "Feature",
       id: item.id,
-      geometry: {
-        type: "Point",
-        coordinates: [item.feature.lng, item.feature.lat],
-      },
-      properties: item.feature,
+      geometry: item.data.geom,
+      properties: item.data.data,
     })),
   }
 
@@ -65,49 +108,149 @@ async function exportGeoJSON() {
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
+  projectOptionPopoverRef.value?.hide()
 }
-
-onMounted(() => {})
 </script>
 
 <template>
-  <div class="relative flex size-full flex-col">
-    <Popover ref="projectOptionPopoverRef">
-      <ul class="space-y-2">
-        <li @click="exportGeoJSON">
-          Export
-        </li>
-        <li @click="deleteProject">
-          Delete
-        </li>
-      </ul>
-    </Popover>
+  <div class="relative flex size-full flex-col pt-8">
+    <Dialog v-model:visible="shareProjectVisible" modal header="Save to cloud" :style="{ width: '25rem' }">
+      <ShareProjectDialog
+        v-if="selectedProjectId != null" :project-id="selectedProjectId"
+        :project-name="selectedProjectName ?? ''"
+        @close="() => {
+          shareProjectVisible = false
+        }"
+      />
+    </Dialog>
+
+    <Drawer
+      v-model:visible="projectOptionVisible"
+      pt:mask:class="backdrop-blur-sm"
+      position="bottom"
+      style="height: auto"
+      :header="selectedProjectName"
+      :show-close-icon="false"
+    >
+      <ProjectOptionDialog
+        v-if="selectedProjectIndex != null && selectedProjectId != null"
+        :project="projects[selectedProjectIndex]!"
+        @edit="openProject(selectedProjectId)"
+        @save-cloud="shareProjectVisible = true"
+        @export-data="exportGeoJSON"
+        @delete-project="deleteProject"
+      />
+    </Drawer>
+
+    <!--     <ul class="space-y-2"> -->
+    <!--        <li -->
+    <!--          @click="() => { -->
+    <!--            if (selectedProjectId == null) { -->
+    <!--              return -->
+    <!--            } -->
+    <!--            openProject(selectedProjectId) -->
+    <!--          }" -->
+    <!--        > -->
+    <!--          Edit -->
+    <!--        </li> -->
+
+    <!--        <li -->
+    <!--          v-if="!selectedProjectIsCollab" @click="() => { -->
+    <!--            shareProjectVisible = true -->
+    <!--          }" -->
+    <!--        > -->
+    <!--          Save to cloud -->
+    <!--        </li> -->
+
+    <!--        <li @click="exportGeoJSON"> -->
+    <!--          Export -->
+    <!--        </li> -->
+
+    <!--        <li @click="deleteProject"> -->
+    <!--          Delete -->
+    <!--        </li> -->
+    <!--      </ul> -->
+
+    <!--    <Popover ref="projectOptionPopoverRef"> -->
+    <!--      <ul class="space-y-2"> -->
+    <!--        <li -->
+    <!--          @click="() => { -->
+    <!--            if (selectedProjectIndex == null) { -->
+    <!--              return -->
+    <!--            } -->
+    <!--            openProject(selectedProjectIndex) -->
+    <!--          }" -->
+    <!--        > -->
+    <!--          Edit -->
+    <!--        </li> -->
+
+    <!--        <li @click="exportGeoJSON"> -->
+    <!--          Share -->
+    <!--        </li> -->
+
+    <!--        <li @click="exportGeoJSON"> -->
+    <!--          Export -->
+    <!--        </li> -->
+
+    <!--        <li @click="deleteProject"> -->
+    <!--          Delete -->
+    <!--        </li> -->
+    <!--      </ul> -->
+    <!--    </Popover> -->
 
     <div class="box-border grow basis-0 overflow-y-auto px-6 pb-6">
-      <ul v-if="projects.length > 0" class="space-y-4">
+      <ul v-if="(projects?.length ?? -1) > 0" class="space-y-4">
         <template v-for="(project, index) in projects" :key="project.name">
-          <li class="relative box-border w-full rounded-lg bg-surface-300 px-4 py-2 dark:bg-surface-800">
-            <div class="mb-1 flex w-full items-center justify-between font-bold">
-              <div>{{ project.name }}</div>
+          <li class="relative box-border flex w-full rounded-lg bg-surface-300 px-4 py-3 dark:bg-surface-800">
+            <div class="grow space-y-2">
+              <div class=" flex w-full items-center justify-between font-bold" @click="startProject(project.id)">
+                <div>{{ project.name }}</div>
 
-              <Button severity="warn" size="small" variant="text" @click="startProject(index + 1)">
-                <i class="i-[solar--play-bold]" />
-                Survey
-              </Button>
-            </div>
-
-            <div class="flex w-full items-center justify-between">
-              <div class="text-xs">
-                {{ new Date(project.lastModified).toLocaleString('id-ID') }}
+                <!--              <Button severity="warn" size="small" variant="text" @click="startProject(project.id)"> -->
+                <!--                <i class="i-[solar&#45;&#45;play-bold]" /> -->
+                <!--                Survey -->
+                <!--              </Button> -->
               </div>
 
+              <div class="flex w-full items-center space-x-4 text-xs">
+                <div class="text-surface-400">
+                  <UseTimeAgo v-slot="{ timeAgo }" :time="project.createdAt">
+                    Last modified {{ timeAgo }}
+                  </UseTimeAgo>
+                </div>
+
+                <div class="font-bold text-surface-400">
+                  <template v-if="project.isCollaboration">
+                    COLLABORATION
+                  </template>
+                  <template v-else-if="project.syncAt != null">
+                    <template v-if="project.participantQuota != null && project.participantQuota > 0">
+                      PUBLIC
+                    </template>
+                    <template v-else>
+                      PRIVATE
+                    </template>
+                  </template>
+                  <template v-else>
+                    LOCAL
+                  </template>
+                </div>
+              </div>
+            </div>
+            <div class="flex grow-0 items-center">
               <Button
-                severity="secondary" size="small" variant="text" @click="(e) => {
+                text
+                severity="primary"
+                rounded size="small" @click="(e) => {
+                  selectedProjectId = project.id
                   selectedProjectIndex = index
+                  projectOptionVisible = true
                   projectOptionPopoverRef?.toggle(e)
                 }"
               >
-                <i class="i-[solar--menu-dots-bold] rotate-90" />
+                <template #icon>
+                  <i class="i-[solar--menu-dots-bold] rotate-90 text-4xl" />
+                </template>
               </Button>
             </div>
           </li>

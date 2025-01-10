@@ -56,7 +56,7 @@ function captureCamera() {
 
   ctx.drawImage(videoRef.value!, 0, 0, canvasEl.width, canvasEl.height)
 
-  const capturedImage = canvasEl.toDataURL("image/png")
+  const capturedImage = canvasEl.toDataURL("image/jpeg", 0.7)
   ctx.clearRect(0, 0, canvasEl.width, canvasEl.height)
   emits("captured", capturedImage)
   videoRef.value?.play()
@@ -90,7 +90,7 @@ onMounted(async () => {
         Close
       </Button>
 
-      <div class="size-20 rounded-full bg-surface-100 p-4" @click="captureCamera" />
+      <div class="size-20 rounded-full bg-surface-300 p-4 dark:bg-surface-100" @click="captureCamera" />
 
       <Button style="visibility: hidden;" size="small" variant="text" severity="secondary">
         Close

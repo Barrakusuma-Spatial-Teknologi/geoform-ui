@@ -1,4 +1,7 @@
 <script setup lang="ts">
+const props = withDefaults(defineProps<{ showLabel?: boolean }>(), {
+  showLabel: false,
+})
 const colorMode = useColorMode()
 
 const color = ref(colorMode.value !== "dark")
@@ -16,14 +19,17 @@ watch(color, () => {
 <template>
   <Button
     :severity="color ? 'secondary' : 'warn'"
-    class="!text-2xl"
     size="small"
     variant="text" @click="() => {
       color = !color
     }"
   >
-    <i v-if="color" class="i-[solar--moon-bold]" />
-    <i v-else class="i-[solar--sun-bold]" />
+    <i v-if="color" class="i-[solar--moon-bold] !text-2xl" />
+    <i v-else class="i-[solar--sun-bold] !text-2xl" />
+
+    <template v-if="props.showLabel">
+      Change to {{ !color ? "light" : "dark" }}
+    </template>
   </Button>
 </template>
 

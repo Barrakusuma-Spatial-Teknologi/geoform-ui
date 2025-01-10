@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import type { Map as MglMap } from "maplibre-gl"
-import { get, objectify } from "radash"
+import type { ProjectDataFeature } from "~/composables/project/model/project-data"
+import { get } from "es-toolkit/compat"
 import { match, P } from "ts-pattern"
-import { type FieldConfig, FieldType } from "~/composables/project"
+import { type FieldConfig, FieldType } from "~/composables/project/model/project"
+import { useProjectData } from "~/composables/project/project-data"
 
 const props = defineProps<{
+  projectId: string
+  projectDataId?: string
   fields: FieldConfig[]
   coordinate: {
     lng: number
@@ -17,116 +20,149 @@ const emits = defineEmits<{
   save: [feature: Record<string, any>]
 }>()
 
-let map!: MglMap
-
 const fieldValues = ref<(FieldConfig & {
-  value: any
+  value: unknown
+  meta?: {
+    key: string
+  }
 })[]>([])
 
-function resetFields() {
-  fieldValues.value = props.fields.map((field) => ({
-    ...field,
-    value: undefined,
-  }))
+let projectData!: ReturnType<typeof useProjectData>
+
+async function resetFields() {
+  const data = props.projectDataId != null ? await projectData.getById(props.projectDataId) : {}
+
+  fieldValues.value = await Promise.all(
+    props.fields.map(async (field) => {
+      let value = get<Record<string, undefined | string | boolean | number | Date>>(data ?? {}, `data.data.${field.key}`)
+      if (field.type === FieldType.IMAGE && value != null) {
+        const imageKey = value
+        value = await projectData.getImage(value as string)
+
+        return {
+          ...field,
+          value,
+          meta: {
+            key: imageKey,
+          },
+        }
+      }
+
+      if (field.type === FieldType.DATE && value != null) {
+        value = new Date(value as string)
+      }
+
+      return {
+        ...field,
+        value,
+      }
+    }),
+  )
 }
 
 watch(props.fields, () => {
   resetFields()
 })
 
-function save() {
-  const feature = objectify(fieldValues.value, (o) => o.name, (o) => {
-    return match(o.value)
-      .with(P.array(), (values) => values.map((v) => get(v, "value", "")).join(";"))
-      .otherwise((obj) => obj)
-  })
+const toast = useToast()
+
+function isUuid(input: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+  return uuidRegex.test(input)
+}
+async function save() {
+  const feature: ProjectDataFeature = {
+    geom: {
+      type: "Point",
+      coordinates: [props.coordinate.lng, props.coordinate.lat],
+    },
+    data: {},
+  }
+
+  const errors: { name: string, error: string[] }[] = []
+  const projectDataId = generateId()
+  for (const row of fieldValues.value) {
+    const error: string[] = []
+    // const featureData = get(feature.data, row.key)
+    // if(fea)
+
+    const rowValue = feature.data[row.key] = match(row.value)
+      .returnType<undefined | string | number | boolean | Date | string[]>()
+      .with(P.array(), (values) => values as string[])
+      .with(P.string, (v) => v)
+      .with(P.number, (v) => v)
+      .otherwise((obj) => get(obj, "key") ?? get(obj, "value"))
+
+    if (rowValue == null && row.required) {
+      error.push("required, can not be empty")
+      if (row.type === FieldType.IMAGE) {
+        toast.add({
+          life: 5000,
+          closable: true,
+          severity: "error",
+          summary: `${row.name} is required, can not be empty`,
+        })
+        throw new Error("image cannot be empty")
+      }
+    }
+
+    if (row.type === FieldType.IMAGE && rowValue != null) {
+      feature.data[row.key] = await projectData.upsertImage(row.value as string, projectDataId, get(row, "meta.key"))
+      continue
+    }
+
+    feature.data[row.key] = rowValue
+
+    if (error.length > 0) {
+      errors.push({
+        name: row.name,
+        error,
+      })
+    }
+  }
+
+  if (errors.length > 0) {
+    toast.add({
+      life: 5000,
+      closable: true,
+      severity: "error",
+      summary: `Field: ${errors.map((e) => e.name).join(", ")} is required, can not be empty`,
+    })
+
+    return
+  }
+
+  if (props.projectDataId == null) {
+    await projectData.add(feature)
+  }
+  else {
+    await projectData.update(props.projectDataId, feature)
+  }
+
   emits("save", feature)
 }
 
-// const coordinateWatcher = watchPausable(() => props.coordinate, () => {
-//   if (map == null) {
-//     return
-//   }
-//   const source = map.getSource("userPosition") as GeoJSONSource
-//   if (source == null) {
-//     return
-//   }
-//
-//   source.setData({
-//     type: "FeatureCollection",
-//     features: [{
-//       type: "Feature",
-//       properties: {},
-//       geometry: {
-//         type: "Point",
-//         coordinates: [props.coordinate.lng, props.coordinate.lat],
-//       },
-//     }],
-//   })
-// })
+function convertDDToDMS(decimalDegrees: number): string {
+  const isNegative = decimalDegrees < 0
+  const absoluteDegrees = Math.abs(decimalDegrees)
+
+  const degrees = Math.floor(absoluteDegrees)
+  const minutesFull = (absoluteDegrees - degrees) * 60
+  const minutes = Math.floor(minutesFull)
+  const seconds = Math.round((minutesFull - minutes) * 60)
+
+  const sign = isNegative ? "-" : ""
+  return `${sign}${degrees}° ${minutes}' ${seconds}"`
+}
 
 onActivated(() => {
+  projectData = useProjectData(props.projectId)
   resetFields()
 })
 onMounted(() => {
+  projectData = useProjectData(props.projectId)
   resetFields()
-  // map = new MglMap({
-  //   container: "map",
-  //   refreshExpiredTiles: false,
-  //   attributionControl: false,
-  //   style: {
-  //     version: 8,
-  //     glyphs: "https://font-pbf.sahito.no/{fontstack}/{range}.pbf",
-  //     sources: {
-  //       basemapOsm: {
-  //         type: "raster",
-  //         tiles: [
-  //           "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-  //         ],
-  //         maxzoom: 18,
-  //       },
-  //       userPosition: {
-  //         type: "geojson",
-  //         data: {
-  //           type: "FeatureCollection",
-  //           features: [],
-  //         },
-  //       },
-  //     },
-  //     layers: [
-  //       {
-  //         type: "raster",
-  //         id: "basemap",
-  //         source: "basemapOsm",
-  //       },
-  //       {
-  //         id: "userPosition",
-  //         type: "circle",
-  //         source: "userPosition",
-  //         paint: {
-  //           "circle-color": "#da9210",
-  //           "circle-radius": 10,
-  //         },
-  //       },
-  //     ],
-  //   },
-  //   bounds: [
-  //     106.639,
-  //     -6.38209,
-  //     107.008,
-  //     -6.07012,
-  //   ],
-  //   maxZoom: 20,
-  //   maxPitch: 0,
-  //   dragRotate: false,
-  //   doubleClickZoom: false,
-  //   maplibreLogo: false,
-  //   validateStyle: false,
-  //   preserveDrawingBuffer: false,
-  // })
-  //
-  // map.on("load", () => {
-  // })
 })
 
 onBeforeUnmount(() => {
@@ -135,11 +171,10 @@ onBeforeUnmount(() => {
 onDeactivated(() => {
   resetFields()
 })
-// onBefore
 </script>
 
 <template>
-  <div class="box-border flex size-full flex-col rounded-lg bg-surface-800 p-4">
+  <div class="box-border flex size-full flex-col rounded-lg bg-surface-100 p-4 dark:bg-surface-800">
     <div class="mb-5 grow-0 font-bold">
       Fill form
     </div>
@@ -147,52 +182,82 @@ onDeactivated(() => {
     <div class="w-full grow basis-0 overflow-y-auto">
       <ul class="flex w-full flex-col space-y-4">
         <li>
-          <div class="text-sm">
+          <div class="text-sm text-surface-400">
             Location at
           </div>
 
           <div>
-            {{ props.coordinate.lng }}
-          </div>
-          <div>
-            {{ props.coordinate.lat }}
+            {{ convertDDToDMS(props.coordinate.lng) }} ; {{ convertDDToDMS(props.coordinate.lat) }}
           </div>
         </li>
 
-        <li v-for="field in fieldValues" :key="field.key" class="w-full">
+        <li v-for="field in fieldValues" :key="field.key" class="w-full" :class="[field.required ? 'required' : '']">
           <template v-if="field.type === FieldType.TEXT">
-            <IftaLabel fluid class="">
-              <InputText :id="field.key" v-model.lazy="field.value" fluid />
-              <label :for="field.key">{{ field.name }}</label>
-            </IftaLabel>
+            <div class="space-y-1">
+              <label class="text-sm" :for="field.key">
+                {{ field.name }}
+              </label>
+              <InputText :id="field.key" v-model.lazy="field.value as string" fluid />
+            </div>
           </template>
           <template v-else-if="field.type === FieldType.NUMBER">
-            <IftaLabel fluid class="">
-              <InputNumber :id="field.key" v-model.lazy="field.value" fluid />
-              <label :for="field.key">{{ field.name }}</label>
-            </IftaLabel>
+            <div class="space-y-1">
+              <label class="text-sm" :for="field.key">
+                {{ field.name }}
+                <template v-if="field.required">*</template>
+              </label>
+              <InputNumber :id="field.key" v-model.lazy="field.value as number" fluid />
+            </div>
           </template>
 
           <template v-else-if="field.type === FieldType.DATE">
-            <IftaLabel fluid class="">
-              <DatePicker :id="field.key" v-model="field.value" fluid />
-              <label :for="field.key">{{ field.name }}</label>
-            </IftaLabel>
+            <div class="space-y-1">
+              <label class="text-sm" :for="field.key">
+                {{ field.name }}
+              </label>
+              <DatePicker :id="field.key" v-model="field.value as Date" fluid />
+            </div>
           </template>
 
           <template v-else-if="field.type === FieldType.IMAGE">
-            <div>
-              <label :for="field.key" class="pb-2 pl-2 text-xs">{{ field.name }}</label>
-              <FieldInputImage v-model:image="field.value" />
+            <div class="space-y-1">
+              <label class="text-sm" :for="field.key">
+                {{ field.name }}
+              </label>
+              <FieldInputImage v-model:image="field.value as string" />
             </div>
           </template>
 
           <template v-else-if="field.type === FieldType.CHECKBOX">
-            <div>
-              <label :for="field.key" class="pb-2 pl-2 text-xs">{{ field.name }}</label>
+            <div class="space-y-1">
+              <label class="text-sm" :for="field.key">
+                {{ field.name }}
+              </label>
               <Listbox
-                v-model="field.value" :multiple="field.optionConfig?.multiple ?? true"
-                :options="field.optionConfig?.options ?? []" option-label="value" class="w-full"
+                v-if="(field.fieldConfig?.options ?? []).length <= 4"
+                v-model="field.value"
+                :multiple="field.fieldConfig?.multiple ?? true"
+                :options="field.fieldConfig?.options ?? []" option-label="value" option-value="key" class="w-full"
+                fluid
+              />
+              <MultiSelect
+                v-else-if="field.fieldConfig?.multiple ?? true"
+                v-model="field.value"
+                filter
+                :options="field.fieldConfig?.options ?? []"
+                option-label="value"
+                option-value="key"
+                class="w-full"
+                fluid
+              />
+              <Select
+                v-else
+                v-model="field.value"
+                filter
+                :options="field.fieldConfig?.options ?? []"
+                option-label="value"
+                option-value="key"
+                class="w-full"
                 fluid
               />
             </div>
@@ -224,5 +289,8 @@ onDeactivated(() => {
 </template>
 
 <style scoped>
-
+li.required label:after {
+  @apply text-red-400;
+  content: " *";
+}
 </style>

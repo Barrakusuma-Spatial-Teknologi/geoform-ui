@@ -1,17 +1,29 @@
 <script setup lang="ts">
 import { appName } from "~~/constants"
+import { useUiBlocker } from "~/composables/ui/blocker"
 
 useHead({
   title: appName,
 })
 
-const blocked = ref(false)
+const blocker = useUiBlocker()
 </script>
 
 <template>
   <NuxtPwaManifest />
-  <Toast />
-  <BlockUI :blocked="blocked" full-screen />
+  <Toast position="top-center" />
+  <TransitionFade>
+    <div v-if="blocker.state">
+      <div class="absolute left-0 top-1/2 z-[9999999999] flex w-full flex-col items-center justify-center">
+        <ProgressSpinner style="width: 50px; height: 50px" stroke-width="8" fill="transparent" />
+        <div>
+          {{ blocker.message }}
+        </div>
+      </div>
+    </div>
+  </TransitionFade>
+
+  <BlockUI :blocked="blocker.state" full-screen />
 
   <NuxtLayout>
     <NuxtPage />

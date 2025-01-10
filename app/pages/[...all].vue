@@ -1,17 +1,21 @@
 <script setup lang="ts">
+definePageMeta({
+  requiresAuth: false,
+})
 const router = useRouter()
 </script>
 
 <template>
-  <main p="x4 y10" text="center teal-700 dark:gray-200">
-    <div text-4xl>
-      <div i-carbon-warning inline-block />
-    </div>
-    <div>Not found</div>
+  <div class="flex size-full flex-col items-center justify-center">
+    <div>Page Not found</div>
     <div>
-      <button text-sm btn m="3 t8" @click="router.back()">
+      <Button
+        text size="small" @click="() => {
+          navigateTo('/login')
+        }"
+      >
         Back
-      </button>
+      </Button>
     </div>
-  </main>
+  </div>
 </template>

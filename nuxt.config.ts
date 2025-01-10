@@ -7,7 +7,6 @@ import { appDescription } from "./constants"
 export default defineNuxtConfig({
   modules: [
     "@vueuse/nuxt",
-    // "@sidebase/nuxt-auth",
     "@nuxtjs/tailwindcss",
     "@pinia/nuxt",
     "@nuxtjs/color-mode",
@@ -19,9 +18,7 @@ export default defineNuxtConfig({
     "@vee-validate/nuxt",
   ],
 
-  plugins: [
-    "~/plugins/forbidden-handler",
-  ],
+  plugins: [],
 
   ssr: false,
 
@@ -81,6 +78,9 @@ export default defineNuxtConfig({
   runtimeConfig: {
     databaseUrl: "",
     secret: "",
+    public: {
+      apiUrl: "",
+    },
   },
   devServer: {
     https: {
@@ -128,6 +128,14 @@ export default defineNuxtConfig({
         force: true, // force generation of certs even without setting https property in the vite config
       }),
     ],
+    server: {
+      proxy: {
+        "/api": {
+          target: "http://localhost:8080",
+          changeOrigin: true,
+        },
+      },
+    },
   },
 
   eslint: {

@@ -5,13 +5,24 @@ import type { Map as Mapl, MapLibreEvent } from "maplibre-gl"
  * @param map
  * @returns {Promise<MapLibreEvent>} maplibre event
  */
-export function onMapLoad(map: Mapl): Promise<MapLibreEvent> {
+export function onMapLoad(map: Mapl): Promise<MapLibreEvent | null> {
   return new Promise((resolve, reject) => {
-    map.on("load", (e) => {
-      if (e == null) {
-        reject(new Error("failed to load map"))
+    const timeout = setTimeout(() => {
+      if (map.loaded()) {
+        resolve(null)
+        return
       }
 
+      reject(new Error("failed to load map, exceeded timeout"))
+    }, 5000)
+
+    map.on("load", (e) => {
+      if (e == null) {
+        clearTimeout(timeout)
+        reject(new Error("failed to load map, map is null"))
+      }
+
+      clearTimeout(timeout)
       resolve(e)
     })
   })
