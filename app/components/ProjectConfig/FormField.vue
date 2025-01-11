@@ -1,12 +1,13 @@
 <script setup lang="ts">
+import type { FieldConfigWrapper } from "~/components/ProjectConfig/formConfig"
 import FormFieldSingular from "~/components/ProjectConfig/FormFieldSingular.vue"
-import { type FieldConfig, type FieldConfigCheckbox, fieldOptions, FieldType } from "~/composables/project/model/project"
+import { type FieldConfigCheckbox, fieldOptions, FieldType } from "~/composables/project/model/project"
 
 const emits = defineEmits<{
   remove: []
 }>()
 
-const field = defineModel<FieldConfig>("field", {
+const field = defineModel<FieldConfigWrapper>("field", {
   required: true,
 })
 </script>
@@ -35,7 +36,7 @@ const field = defineModel<FieldConfig>("field", {
               }
               else {
                 if ('fieldConfig' in field) {
-                  field!.fieldConfig = undefined
+                  field!.fieldConfig = {}
                 }
               }
             }"

@@ -10,7 +10,6 @@ import { match } from "ts-pattern"
 import { usePrimaryColor } from "~/composables/color"
 import { useLayoutTitle } from "~/composables/layout"
 import { onMapLoad } from "~/composables/maplibre-helper/onMapLoad"
-import { useDb } from "~/composables/project/db"
 import { LayerDataType, type LayerStylePolygon, type ProjectLayer } from "~/composables/project/model/project-layer"
 import { useProjectStore } from "~/composables/project/project"
 import { useProjectData } from "~/composables/project/project-data"
@@ -437,9 +436,7 @@ onMounted(async () => {
       position="bottom"
       header="Layer Manager"
     >
-      <div>
-        Layer
-      </div>
+      <CommonUnderConstruction />
     </Drawer>
 
     <Drawer

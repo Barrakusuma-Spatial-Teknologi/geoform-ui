@@ -22,6 +22,8 @@ const backToRoute = computed(() => {
   if ("backTo" in route.meta) {
     return route.meta.backTo
   }
+
+  return undefined
 })
 
 const configVisible = ref(false)
@@ -34,7 +36,7 @@ async function logout() {
 </script>
 
 <template>
-  <div class="relative flex size-full flex-col">
+  <div class="relative flex size-full flex-col justify-center">
     <Drawer
       v-model:visible="configVisible" position="right"
       pt:mask:class="backdrop-blur-sm"
@@ -57,7 +59,7 @@ async function logout() {
       </div>
     </Drawer>
 
-    <div class="header box-border flex w-full grow-0 items-center justify-between px-6 py-2">
+    <div class="header box-border flex w-full grow-0 items-center justify-between self-center px-6 py-2 xl:max-w-screen-md">
       <div>
         <slot name="leftHeader">
           <template v-if="backToRoute == null">
@@ -75,7 +77,7 @@ async function logout() {
           <template v-else>
             <Button
               severity="secondary" size="small" rounded @click="() => {
-                navigateTo(backToRoute)
+                navigateTo(backToRoute as string)
               }"
             >
               <i class="i-[solar--alt-arrow-left-line-duotone] text-2xl" />
@@ -97,7 +99,7 @@ async function logout() {
       </Button>
     </div>
 
-    <main class="grow basis-0 overflow-y-auto">
+    <main class="w-full grow basis-0 self-center overflow-y-auto xl:max-w-screen-md">
       <slot />
     </main>
   </div>

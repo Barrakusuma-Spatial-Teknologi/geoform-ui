@@ -51,6 +51,7 @@ export interface FieldConfigCheckbox extends FC<FieldType.CHECKBOX> {
 
 export interface FieldConfigText extends FC<FieldType.TEXT> {
   fieldConfig?: {
+    minLength?: number
     maxLength?: number
     pattern?: string
   }
@@ -61,6 +62,7 @@ export interface FieldConfigNumber extends FC<FieldType.NUMBER> {
     min?: number
     max?: number
     step?: number
+    isFloat?: boolean
   }
 }
 
@@ -83,6 +85,7 @@ interface FieldConfigBoolean extends FC<FieldType.BOOLEAN> {
 }
 interface FieldConfigNested extends FC<FieldType.NESTED> {
   fields: FieldConfigSingular[]
+  fieldConfig?: Record<string, unknown>
 }
 
 export type FieldConfigSingular =

@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import type { ProjectDataFeature } from "~/composables/project/model/project-data"
+import { type FormFieldState, type FormSubmitEvent, Form as PvForm } from "@primevue/forms"
+import { zodResolver } from "@primevue/forms/resolvers/zod"
 import { get } from "es-toolkit/compat"
-import { match, P } from "ts-pattern"
+import { createZodSchema } from "~/components/FieldInput/form-validation"
 import { type FieldConfig, FieldType } from "~/composables/project/model/project"
 import { useProjectData } from "~/composables/project/project-data"
 
@@ -25,26 +27,40 @@ const fieldValues = ref<(FieldConfig & {
   meta?: {
     key: string
   }
+  valid?: boolean
 })[]>([])
+
+const validationSchema = ref(zodResolver(createZodSchema(props.fields)))
+const initialValues = ref<Record<string, any>>()
+
+const fieldDirty = ref(false)
+const watchField = watchPausable(fieldValues, () => {
+  fieldDirty.value = true
+  watchField.pause()
+})
 
 let projectData!: ReturnType<typeof useProjectData>
 
 async function resetFields() {
+  console.log("init reset")
   const data = props.projectDataId != null ? await projectData.getById(props.projectDataId) : {}
+  const init: Record<string, any> = {}
 
   fieldValues.value = await Promise.all(
     props.fields.map(async (field) => {
       let value = get<Record<string, undefined | string | boolean | number | Date>>(data ?? {}, `data.data.${field.key}`)
       if (field.type === FieldType.IMAGE && value != null) {
-        const imageKey = value
+        const imageKey = String(value)
         value = await projectData.getImage(value as string)
 
+        init[field.key] = value
         return {
           ...field,
           value,
           meta: {
             key: imageKey,
           },
+          valid: undefined,
         }
       }
 
@@ -52,12 +68,21 @@ async function resetFields() {
         value = new Date(value as string)
       }
 
+      init[field.key] = value
+
+      console.log("init value = ", field.key, value)
+
       return {
         ...field,
         value,
+        valid: undefined,
       }
     }),
   )
+
+  console.log("init", init)
+  initialValues.value = init
+  watchField.resume()
 }
 
 watch(props.fields, () => {
@@ -71,7 +96,18 @@ function isUuid(input: string): boolean {
 
   return uuidRegex.test(input)
 }
-async function save() {
+
+const formRef = ref<InstanceType<typeof PvForm>>()
+
+async function save(e: FormSubmitEvent) {
+  if (!e.valid) {
+    toast.add({
+      severity: "error",
+      summary: "Invalid data",
+    })
+    return
+  }
+
   const feature: ProjectDataFeature = {
     geom: {
       type: "Point",
@@ -80,58 +116,79 @@ async function save() {
     data: {},
   }
 
-  const errors: { name: string, error: string[] }[] = []
+  // const errors: {
+  //   name: string
+  //   error: string[]
+  // }[] = []
   const projectDataId = generateId()
-  for (const row of fieldValues.value) {
-    const error: string[] = []
-    // const featureData = get(feature.data, row.key)
-    // if(fea)
+  for (const row of props.fields) {
+    // const rowValue = match(row.value)
+    //   .returnType<undefined | string | number | boolean | Date | string[]>()
+    //   .with(P.array(), () => e.values[row.key] as string[])
+    //   .with(P.string, () => e.values[row.key])
+    //   .with(P.number, () => e.values[row.key])
+    //   .otherwise((obj) => e.values[row.key]!)
 
-    const rowValue = feature.data[row.key] = match(row.value)
-      .returnType<undefined | string | number | boolean | Date | string[]>()
-      .with(P.array(), (values) => values as string[])
-      .with(P.string, (v) => v)
-      .with(P.number, (v) => v)
-      .otherwise((obj) => get(obj, "key") ?? get(obj, "value"))
-
-    if (rowValue == null && row.required) {
-      error.push("required, can not be empty")
-      if (row.type === FieldType.IMAGE) {
-        toast.add({
-          life: 5000,
-          closable: true,
-          severity: "error",
-          summary: `${row.name} is required, can not be empty`,
-        })
-        throw new Error("image cannot be empty")
-      }
-    }
+    const rowValue = e.values[row.key] as undefined | string | number | boolean | Date | string[]
 
     if (row.type === FieldType.IMAGE && rowValue != null) {
-      feature.data[row.key] = await projectData.upsertImage(row.value as string, projectDataId, get(row, "meta.key"))
+      feature.data[row.key] = await projectData.upsertImage(e.values[row.key]!, projectDataId, get(row, "meta.key"))
       continue
     }
 
     feature.data[row.key] = rowValue
-
-    if (error.length > 0) {
-      errors.push({
-        name: row.name,
-        error,
-      })
-    }
   }
 
-  if (errors.length > 0) {
-    toast.add({
-      life: 5000,
-      closable: true,
-      severity: "error",
-      summary: `Field: ${errors.map((e) => e.name).join(", ")} is required, can not be empty`,
-    })
+  // for (const row of fieldValues.value) {
+  //   const error: string[] = []
+  //   // const featureData = get(feature.data, row.key)
+  //   // if(fea)
+  //
+  //   const rowValue = match(row.value)
+  //     .returnType<undefined | string | number | boolean | Date | string[]>()
+  //     .with(P.array(), (values) => values as string[])
+  //     .with(P.string, (v) => v)
+  //     .with(P.number, (v) => v)
+  //     .otherwise((obj) => get(obj, "key") ?? get(obj, "value"))
+  //
+  //   if (rowValue == null && row.required) {
+  //     error.push("required, can not be empty")
+  //     if (row.type === FieldType.IMAGE) {
+  //       toast.add({
+  //         life: 5000,
+  //         closable: true,
+  //         severity: "error",
+  //         summary: `${row.name} is required, can not be empty`,
+  //       })
+  //       throw new Error("image cannot be empty")
+  //     }
+  //   }
+  //
+  //   if (row.type === FieldType.IMAGE && rowValue != null) {
+  //     feature.data[row.key] = await projectData.upsertImage(row.value as string, projectDataId, get(row, "meta.key"))
+  //     continue
+  //   }
+  //
+  //   feature.data[row.key] = rowValue
+  //
+  //   if (error.length > 0) {
+  //     errors.push({
+  //       name: row.name,
+  //       error,
+  //     })
+  //   }
+  // }
 
-    return
-  }
+  // if (errors.length > 0) {
+  //   toast.add({
+  //     life: 5000,
+  //     closable: true,
+  //     severity: "error",
+  //     summary: `Field: ${errors.map((e) => e.name).join(", ")} is required, can not be empty`,
+  //   })
+  //
+  //   return
+  // }
 
   if (props.projectDataId == null) {
     await projectData.add(feature)
@@ -156,13 +213,15 @@ function convertDDToDMS(decimalDegrees: number): string {
   return `${sign}${degrees}° ${minutes}' ${seconds}"`
 }
 
-onActivated(() => {
+onActivated(async () => {
   projectData = useProjectData(props.projectId)
-  resetFields()
+  await resetFields()
 })
-onMounted(() => {
+onMounted(async () => {
   projectData = useProjectData(props.projectId)
-  resetFields()
+  await resetFields()
+  console.log(initialValues.value)
+  console.log(createZodSchema(props.fields))
 })
 
 onBeforeUnmount(() => {
@@ -179,8 +238,13 @@ onDeactivated(() => {
       Fill form
     </div>
 
-    <div class="w-full grow basis-0 overflow-y-auto">
-      <ul class="flex w-full flex-col space-y-4">
+    <PvForm
+      v-if="initialValues != null" v-slot="$form" ref="formRef" class="flex w-full grow flex-col"
+      :initial-values="initialValues"
+      :resolver="validationSchema"
+      @submit="save"
+    >
+      <ul class="flex w-full grow basis-0 flex-col space-y-4 overflow-y-auto">
         <li>
           <div class="text-sm text-surface-400">
             Location at
@@ -191,22 +255,35 @@ onDeactivated(() => {
           </div>
         </li>
 
-        <li v-for="field in fieldValues" :key="field.key" class="w-full" :class="[field.required ? 'required' : '']">
+        <li
+          v-for="field in props.fields" :key="field.key" class="w-full space-y-2"
+          :class="[field.required ? 'required' : '']"
+        >
           <template v-if="field.type === FieldType.TEXT">
             <div class="space-y-1">
               <label class="text-sm" :for="field.key">
                 {{ field.name }}
               </label>
-              <InputText :id="field.key" v-model.lazy="field.value as string" fluid />
+              <InputText :id="field.key" :name="field.key" fluid />
+              <Message v-if="$form[field.key]?.invalid" class="h-5" severity="error" size="small" variant="simple">
+                {{ $form[field.key]?.error?.message }}
+              </Message>
             </div>
           </template>
           <template v-else-if="field.type === FieldType.NUMBER">
             <div class="space-y-1">
               <label class="text-sm" :for="field.key">
                 {{ field.name }}
-                <template v-if="field.required">*</template>
               </label>
-              <InputNumber :id="field.key" v-model.lazy="field.value as number" fluid />
+              <InputNumber
+                :id="field.key" :name="field.key" locale="id-ID"
+                :min-fraction-digits="(field?.fieldConfig?.isFloat ?? false) ? 1 : 0"
+                :max-fraction-digits="(field?.fieldConfig?.isFloat ?? false) ? 10 : 1"
+                fluid
+              />
+              <Message v-if="$form[field.key]?.invalid" severity="error" size="small" variant="simple">
+                {{ $form[field.key]?.error?.message }}
+              </Message>
             </div>
           </template>
 
@@ -215,7 +292,11 @@ onDeactivated(() => {
               <label class="text-sm" :for="field.key">
                 {{ field.name }}
               </label>
-              <DatePicker :id="field.key" v-model="field.value as Date" fluid />
+              <DatePicker :id="field.key" :name="field.key" fluid />
+
+              <Message v-if="$form[field.key]?.invalid" severity="error" size="small" variant="simple">
+                {{ $form[field.key]?.error?.message }}
+              </Message>
             </div>
           </template>
 
@@ -224,7 +305,19 @@ onDeactivated(() => {
               <label class="text-sm" :for="field.key">
                 {{ field.name }}
               </label>
-              <FieldInputImage v-model:image="field.value as string" />
+              <FormField v-slot="$field" :name="field.key">
+                <FieldInputImage
+                  :id="field.key"
+                  :default-value="$form[field.key]?.value"
+                  @validated="(v: FormFieldState) => {
+                    $field.onInput(v)
+                  }"
+                />
+
+                <Message v-if="$form[field.key]?.invalid" severity="error" size="small" variant="simple">
+                  {{ $form[field.key]?.error?.message }}
+                </Message>
+              </FormField>
             </div>
           </template>
 
@@ -235,14 +328,14 @@ onDeactivated(() => {
               </label>
               <Listbox
                 v-if="(field.fieldConfig?.options ?? []).length <= 4"
-                v-model="field.value"
+                :id="field.key" :name="field.key"
                 :multiple="field.fieldConfig?.multiple ?? true"
                 :options="field.fieldConfig?.options ?? []" option-label="value" option-value="key" class="w-full"
                 fluid
               />
               <MultiSelect
                 v-else-if="field.fieldConfig?.multiple ?? true"
-                v-model="field.value"
+                :id="field.key" :name="field.key"
                 filter
                 :options="field.fieldConfig?.options ?? []"
                 option-label="value"
@@ -252,7 +345,7 @@ onDeactivated(() => {
               />
               <Select
                 v-else
-                v-model="field.value"
+                :id="field.key" :name="field.key"
                 filter
                 :options="field.fieldConfig?.options ?? []"
                 option-label="value"
@@ -260,31 +353,147 @@ onDeactivated(() => {
                 class="w-full"
                 fluid
               />
+
+              <Message v-if="$form[field.key]?.invalid" severity="error" size="small" variant="simple">
+                {{ $form[field.key]?.error?.message }}
+              </Message>
             </div>
           </template>
 
           <template v-else-if="field.type === FieldType.BOOLEAN">
-            <div class="flex items-center gap-2">
-              <Checkbox :id="field.key" v-model="field.value" binary />
-              <label :for="field.key"> {{ field.name }} </label>
+            <div class="space-y-1">
+              <div class="flex items-center gap-2">
+                <Checkbox :id="field.key" :name="field.key" binary />
+                <label :for="field.key"> {{ field.name }} </label>
+              </div>
+              <Message v-if="$form[field.key]?.invalid" severity="error" size="small" variant="simple">
+                {{ $form[field.key]?.error?.message }}
+              </Message>
             </div>
           </template>
         </li>
       </ul>
-    </div>
 
-    <div class="flex w-full justify-between gap-4">
-      <Button
-        class="grow-0" variant="text" severity="secondary" @click="() => {
-          emits('close')
-        }"
-      >
-        Cancel
-      </Button>
-      <Button class="grow font-bold" @click="save">
-        Save
-      </Button>
-    </div>
+      <div class="flex w-full justify-between gap-4">
+        <Button
+          class="grow-0" variant="text" severity="secondary" @click="() => {
+            emits('close')
+          }"
+        >
+          Cancel
+        </Button>
+        <Button class="grow font-bold" type="submit">
+          Save
+        </Button>
+      </div>
+    </PvForm>
+
+    <!--    <div class="w-full grow basis-0 overflow-y-auto"> -->
+    <!--      <ul class="flex w-full flex-col space-y-4"> -->
+    <!--                <li> -->
+    <!--                  <div class="text-sm text-surface-400"> -->
+    <!--                    Location at -->
+    <!--                  </div> -->
+
+    <!--                  <div> -->
+    <!--                    {{ convertDDToDMS(props.coordinate.lng) }} ; {{ convertDDToDMS(props.coordinate.lat) }} -->
+    <!--                  </div> -->
+    <!--                </li> -->
+
+    <!--                <li v-for="field in fieldValues" :key="field.key" class="w-full" :class="[field.required ? 'required' : '']"> -->
+    <!--                  <template v-if="field.type === FieldType.TEXT"> -->
+    <!--                    <div class="space-y-1"> -->
+    <!--                      <label class="text-sm" :for="field.key"> -->
+    <!--                        {{ field.name }} -->
+    <!--                      </label> -->
+    <!--                      <InputText :id="field.key" v-model.lazy="field.value as string" fluid /> -->
+    <!--                    </div> -->
+    <!--                  </template> -->
+    <!--                  <template v-else-if="field.type === FieldType.NUMBER"> -->
+    <!--                    <div class="space-y-1"> -->
+    <!--                      <label class="text-sm" :for="field.key"> -->
+    <!--                        {{ field.name }} -->
+    <!--                        <template v-if="field.required">*</template> -->
+    <!--                      </label> -->
+    <!--                      <InputNumber :id="field.key" v-model.lazy="field.value as number" fluid /> -->
+    <!--                    </div> -->
+    <!--                  </template> -->
+
+    <!--                  <template v-else-if="field.type === FieldType.DATE"> -->
+    <!--                    <div class="space-y-1"> -->
+    <!--                      <label class="text-sm" :for="field.key"> -->
+    <!--                        {{ field.name }} -->
+    <!--                      </label> -->
+    <!--                      <DatePicker :id="field.key" v-model="field.value as Date" fluid /> -->
+    <!--                    </div> -->
+    <!--                  </template> -->
+
+    <!--                  <template v-else-if="field.type === FieldType.IMAGE"> -->
+    <!--                    <div class="space-y-1"> -->
+    <!--                      <label class="text-sm" :for="field.key"> -->
+    <!--                        {{ field.name }} -->
+    <!--                      </label> -->
+    <!--                      <FieldInputImage v-model:image="field.value as string" /> -->
+    <!--                    </div> -->
+    <!--                  </template> -->
+
+    <!--                  <template v-else-if="field.type === FieldType.CHECKBOX"> -->
+    <!--                    <div class="space-y-1"> -->
+    <!--                      <label class="text-sm" :for="field.key"> -->
+    <!--                        {{ field.name }} -->
+    <!--                      </label> -->
+    <!--                      <Listbox -->
+    <!--                        v-if="(field.fieldConfig?.options ?? []).length <= 4" -->
+    <!--                        v-model="field.value" -->
+    <!--                        :multiple="field.fieldConfig?.multiple ?? true" -->
+    <!--                        :options="field.fieldConfig?.options ?? []" option-label="value" option-value="key" class="w-full" -->
+    <!--                        fluid -->
+    <!--                      /> -->
+    <!--                      <MultiSelect -->
+    <!--                        v-else-if="field.fieldConfig?.multiple ?? true" -->
+    <!--                        v-model="field.value" -->
+    <!--                        filter -->
+    <!--                        :options="field.fieldConfig?.options ?? []" -->
+    <!--                        option-label="value" -->
+    <!--                        option-value="key" -->
+    <!--                        class="w-full" -->
+    <!--                        fluid -->
+    <!--                      /> -->
+    <!--                      <Select -->
+    <!--                        v-else -->
+    <!--                        v-model="field.value" -->
+    <!--                        filter -->
+    <!--                        :options="field.fieldConfig?.options ?? []" -->
+    <!--                        option-label="value" -->
+    <!--                        option-value="key" -->
+    <!--                        class="w-full" -->
+    <!--                        fluid -->
+    <!--                      /> -->
+    <!--                    </div> -->
+    <!--                  </template> -->
+
+    <!--                  <template v-else-if="field.type === FieldType.BOOLEAN"> -->
+    <!--                    <div class="flex items-center gap-2"> -->
+    <!--                      <Checkbox :id="field.key" v-model="field.value" binary /> -->
+    <!--                      <label :for="field.key"> {{ field.name }} </label> -->
+    <!--                    </div> -->
+    <!--                  </template> -->
+    <!--                </li> -->
+    <!--      </ul> -->
+    <!--    </div> -->
+
+    <!--    <div class="flex w-full justify-between gap-4"> -->
+    <!--      <Button -->
+    <!--        class="grow-0" variant="text" severity="secondary" @click="() => { -->
+    <!--          emits('close') -->
+    <!--        }" -->
+    <!--      > -->
+    <!--        Cancel -->
+    <!--      </Button> -->
+    <!--      <Button class="grow font-bold" @click="save"> -->
+    <!--        Save -->
+    <!--      </Button> -->
+    <!--    </div> -->
   </div>
 </template>
 

@@ -37,18 +37,7 @@ const _cameraPerm = usePermission("camera")
 
 const selectedProjectId = ref<string>()
 const selectedProjectIndex = ref<number>()
-const selectedProjectIsCollab = computed(() => {
-  if (selectedProjectIndex.value == null) {
-    return "Project option"
-  }
 
-  if (projects.value == null) {
-    return "Project option"
-  }
-
-  const project = projects.value[selectedProjectIndex.value]
-  return project?.isCollaboration
-})
 const selectedProjectName = computed(() => {
   if (selectedProjectIndex.value == null) {
     return "Project option"
@@ -87,7 +76,7 @@ async function exportGeoJSON() {
     return
   }
 
-  const projectData = useProjectData(project.key)
+  const projectData = useProjectData(project.id)
   const data = await projectData.getAll()
   const featuresCollection: FeatureCollection = {
     type: "FeatureCollection",
@@ -127,6 +116,7 @@ async function exportGeoJSON() {
     <Drawer
       v-model:visible="projectOptionVisible"
       pt:mask:class="backdrop-blur-sm"
+      class="xl:max-w-screen-md"
       position="bottom"
       style="height: auto"
       :header="selectedProjectName"
@@ -134,7 +124,7 @@ async function exportGeoJSON() {
     >
       <ProjectOptionDialog
         v-if="selectedProjectIndex != null && selectedProjectId != null"
-        :project="projects[selectedProjectIndex]!"
+        :project="projects![selectedProjectIndex]!"
         @edit="openProject(selectedProjectId)"
         @save-cloud="shareProjectVisible = true"
         @export-data="exportGeoJSON"
@@ -214,7 +204,7 @@ async function exportGeoJSON() {
 
               <div class="flex w-full items-center space-x-4 text-xs">
                 <div class="text-surface-400">
-                  <UseTimeAgo v-slot="{ timeAgo }" :time="project.createdAt">
+                  <UseTimeAgo v-slot="{ timeAgo }" :time="project.updatedAt ?? project.createdAt">
                     Last modified {{ timeAgo }}
                   </UseTimeAgo>
                 </div>

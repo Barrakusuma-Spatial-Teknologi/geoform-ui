@@ -1,5 +1,33 @@
 <script setup lang="ts">
-const image = defineModel<string>("image")
+import type { FormFieldState } from "@primevue/forms"
+import type { FieldConfigImage } from "~/composables/project/model/project"
+
+const props = defineProps<{
+  defaultValue?: string
+  config?: NonNullable<FieldConfigImage["fieldConfig"]>
+  $primeField?: any
+}>()
+
+const emits = defineEmits<{
+  validated: [value: FormFieldState]
+}>()
+
+const image = defineModel<string>("image", {
+  required: false,
+})
+
+watch(image, () => {
+  console.log("emitting")
+
+  const touched = image.value !== props.defaultValue
+  //
+  emits("validated", {
+    value: image.value ?? props.defaultValue,
+    touched,
+    dirty: touched,
+    valid: true,
+  } as FormFieldState)
+})
 
 const takePictureVisible = ref(false)
 
@@ -12,6 +40,7 @@ const {
 })
 
 onChange((files) => {
+  console.debug("changed")
   if (files == null) {
     return
   }
@@ -48,7 +77,7 @@ onChange((files) => {
     </Teleport>
 
     <div v-if="image != null" class="flex min-h-[100px] w-[250px] items-center justify-center">
-      <Image class="mb-2" :src="image" alt="Image" width="250" preview />
+      <Image class="mb-2" :src="image ?? props.defaultValue" alt="Image" width="250" preview />
     </div>
 
     <div class="flex w-full justify-center">

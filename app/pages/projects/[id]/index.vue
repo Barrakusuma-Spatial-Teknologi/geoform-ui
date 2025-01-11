@@ -1,18 +1,21 @@
 <script setup lang="ts">
+import type { FieldConfigWrapper } from "~/components/ProjectConfig/formConfig"
 import type { SpatialDataLayers } from "~/components/ProjectConfig/spatialDataConfig"
 import type { FieldConfig } from "~/composables/project/model/project"
+import { omit } from "es-toolkit"
 import { get } from "radash"
+import { useAuth } from "~/composables/auth"
+import { useLayoutTitle } from "~/composables/layout"
 import { useProjectStore } from "~/composables/project/project"
 import { useProjectLayer } from "~/composables/project/project-layer"
 
 definePageMeta({
-  title: "Modify project",
   backTo: "/",
 })
 
 const formMode = ref<"form" | "spatialData">("form")
 const route = useRoute()
-const projectId: string | null = ref(get(route.params, "id"))
+const projectId = ref<string>(get(route.params, "id"))
 const {
   save,
   update,
@@ -23,23 +26,34 @@ const config = reactive({
   title: "",
   key: "",
 })
+const formDirty = ref(false)
+watch(config, () => {
+  formDirty.value = true
+})
 
 const toast = useToast()
-const fields = ref<FieldConfig[]>([])
+const fields = ref<FieldConfigWrapper[]>([])
 const layers = ref<SpatialDataLayers[]>([])
+const auth = useAuth()
 
-async function saveProject(): void {
+async function saveProject() {
+  const parsedFields = fields.value.map((field) => ({
+    ...omit(field, ["dirty"]),
+    fieldConfig: toRaw(field.fieldConfig),
+  } as FieldConfig))
+
   if (projectId.value == null || projectId.value === "new") {
     projectId.value = await save({
       name: config.title,
-      fields: toRaw(fields.value),
+      fields: toRaw(parsedFields),
       createdAt: Date.now(),
+      createdBy: auth.state.username,
     })
 
     const layerOrder = 0
     for (const layer of layers.value) {
-      await useProjectLayer(projectId.value).add({
-        projectId: toRaw(projectId.value),
+      await useProjectLayer(projectId.value!).add({
+        projectId: toRaw(projectId.value!),
         layerStyle: toRaw(layer.layerStyle),
         layerName: toRaw(layer.layerName),
         layerOrder,
@@ -53,10 +67,21 @@ async function saveProject(): void {
       return
     }
 
+    const fieldDirty = fields.value.some((v) => v.dirty)
+
+    if (!fieldDirty && !formDirty.value) {
+      toast.add({
+        severity: "info",
+        summary: "No changes made",
+        life: 3000,
+      })
+      return
+    }
+
     await update({
       name: config.title,
-      fields: toRaw(fields.value),
-      id: projectId.value,
+      fields: toRaw(parsedFields),
+      id: projectId.value!,
       updatedAt: Date.now(),
       createdAt: selected!.createdAt,
     })
@@ -80,11 +105,19 @@ async function saveProject(): void {
     summary: `Project ${config.title} saved!`,
     life: 3000,
   })
+  formDirty.value = false
 
   await navigateTo("/")
 }
 
+const layoutTitle = useLayoutTitle()
+onBeforeUnmount(() => {
+  layoutTitle.value = undefined
+})
+
 onMounted(async () => {
+  layoutTitle.value = "New project"
+
   if (projectId.value == null) {
     return
   }
@@ -94,11 +127,20 @@ onMounted(async () => {
     return
   }
 
+  layoutTitle.value = "Modify project"
+
   config.title = selected.name
   config.key = selected.id
-  fields.value = selected.fields
 
-  layers.value = await useProjectLayer(projectId.value).getAll()
+  fields.value = selected.fields.map((field) => ({ ...field, fieldConfig: field?.fieldConfig ?? {}, dirty: false, strictChange: selected.syncAt != null } as FieldConfigWrapper))
+
+  layers.value = (await useProjectLayer(projectId.value).getAll()).map((layer) => ({
+    ...layer,
+    layerData: layer.layerData ?? {},
+    layerStyle: layer.layerStyle ?? {},
+    visible: true,
+  }))
+  formDirty.value = false
 })
 </script>
 

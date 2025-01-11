@@ -20,6 +20,15 @@ export interface ProjectNewPayload {
   participantQuota?: number
 }
 
+export interface ProjectUpdatePayload {
+  title?: string
+  shareType?: "PUBLIC" | "PRIVATE"
+  fields?: FieldConfig[]
+  layers?: ProjectLayerNewPayload[]
+  participantQuota?: number
+  currentVersionId: string
+}
+
 export interface ProjectResponse {
   id: string
   title: string
@@ -84,6 +93,40 @@ async function saveToCloud(projectId: string, quota?: number) {
     versionId: created.data.versionId,
     participantQuota: quota,
     participantNum: 0,
+  })
+}
+
+async function update(projectId: string) {
+  const { getById } = useProjectStore()
+  const project = await getById(projectId)
+  if (project == null) {
+    return
+  }
+
+  const projectLayer = useProjectLayer(projectId)
+  const layers = (await projectLayer.getAll()).map((layer) => {
+    return omit(layer, ["projectId", "createdAt"])
+  })
+
+  const payload: ProjectUpdatePayload = {
+    participantQuota: project.participantQuota,
+    shareType: project.participantQuota ? "PUBLIC" : "PRIVATE",
+    title: project.name,
+    fields: project.fields,
+    layers,
+    currentVersionId: project.versionId!,
+  }
+
+  const created = await useMainServiceFetch<ProjectUpdatedResponse>(`/projects/${projectId}`, {
+    method: "PATCH",
+    body: payload,
+  })
+
+  const syncAt = created.data?.updatedAt == null ? Date.now() : new Date(created.data.updatedAt).getTime()
+  await useDb().project.update(projectId, {
+    syncAt,
+    updatedAt: syncAt,
+    versionId: created.data.versionId,
   })
 }
 
@@ -190,6 +233,7 @@ export const ProjectService = {
   getLayers,
 
   saveToCloud,
+  update,
 
   join,
 }

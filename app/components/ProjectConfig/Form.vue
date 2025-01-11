@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { FormConfig } from "~/components/ProjectConfig/formConfig"
-import { type FieldConfig, FieldType } from "~/composables/project/model/project"
+import type { FieldConfigWrapper, FormConfig } from "~/components/ProjectConfig/formConfig"
+import { FieldType } from "~/composables/project/model/project"
 import { generateLighterId } from "~/utils/generateId"
 
 const config = defineModel<FormConfig>("config", {
@@ -9,8 +9,8 @@ const config = defineModel<FormConfig>("config", {
     title: "",
   },
 })
-const fields = defineModel<FieldConfig[]>("fields", {
-  default: [] as FieldConfig[],
+const fields = defineModel<FieldConfigWrapper[]>("fields", {
+  default: [] as FieldConfigWrapper[],
 })
 
 const addFieldButtonRef = ref<HTMLDivElement>()
@@ -23,19 +23,11 @@ function addNewField(): void {
     name: "",
     required: false,
     type: FieldType.TEXT,
+    fieldConfig: {},
+    dirty: false,
   })
 
   nextTick()
-
-  // const fieldDiv = document.getElementById(`${key}_container`)
-  // console.log(fieldDiv)
-  // console.log(addFieldButtonRef.value)
-  // addFieldButtonRef.value?.scrollIntoView({
-  //   behavior: "smooth", // Smooth scrolling animation
-  //   block: "nearest", // Align child within the parent container
-  //   inline: "start", // Align horizontally if applicable
-  // })
-  //
 }
 </script>
 

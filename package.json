@@ -14,7 +14,8 @@
     "lint": "eslint .",
     "typecheck": "vue-tsc --noEmit",
     "migrate": "tsx ./migrate.ts",
-    "migrate:up": "tsx ./migrate.ts up"
+    "migrate:up": "tsx ./migrate.ts up",
+    "preview": "PORT=3030 nuxi preview"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^3.12.1",

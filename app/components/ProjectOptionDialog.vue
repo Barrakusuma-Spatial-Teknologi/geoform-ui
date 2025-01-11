@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import type { Project } from "~/composables/project/model/project"
+import { useDb } from "~/composables/project/db"
 import { useUiBlocker } from "~/composables/ui/blocker"
-import { ProjectDataService } from "~/service/api/project"
+import { ProjectDataService, ProjectService } from "~/service/api/project"
 
 const props = defineProps<{
   project: Project
@@ -54,6 +55,12 @@ async function submitData() {
   blocker.show("Submitting data")
   try {
     await ProjectDataService.sync(props.project.id)
+    toast.add({
+      summary: "Data submitted successfully!",
+      severity: "success",
+      closable: true,
+      life: 6000,
+    })
   }
   catch (e) {
     console.error(e)
@@ -61,6 +68,76 @@ async function submitData() {
       summary: "Failed to submit data",
       severity: "error",
       closable: true,
+    })
+  }
+  finally {
+    blocker.hide()
+  }
+}
+
+async function syncProject() {
+  blocker.show("Syncing project configuration...")
+  try {
+    await ProjectService.update(props.project.id)
+  }
+  catch (e) {
+    console.error(e)
+    toast.add({
+      summary: "Failed to sync project",
+      severity: "error",
+      closable: true,
+    })
+    blocker.hide()
+    return
+  }
+
+  await submitData()
+}
+
+async function syncProjectCollaboration() {
+  blocker.show("Fetching project configuration...")
+
+  try {
+    const projectRes = await ProjectService.getById(props.project.id)
+    const project = projectRes.data
+
+    const syncAt = Date.now()
+
+    const layerRes = await ProjectService.getLayers(project.id)
+    const layers = layerRes.data
+
+    const db = useDb()
+    await useDb().transaction("rw?", [db.project, db.projectLayer], async (tx) => {
+      await db.project.update(project.id, {
+        syncAt,
+        createdAt: syncAt,
+        participantQuota: project.participantQuota,
+        fields: project.fields,
+        name: project.title,
+        isCollaboration: true,
+        createdBy: project.createdBy,
+        participantNum: project.participantNum,
+        versionId: project.versionId,
+      })
+
+      blocker.show("Saving project layers")
+
+      await db.projectLayer.filter((layer) => layer.projectId === project.id).delete()
+      await db.projectLayer.bulkAdd(layers)
+    })
+
+    toast.add({
+      severity: "success",
+      summary: "Successfully sync project",
+      life: 3000,
+    })
+  }
+  catch (e) {
+    console.error(e)
+    toast.add({
+      severity: "error",
+      summary: "Failed to update project",
+      life: 3000,
     })
   }
   finally {
@@ -93,9 +170,22 @@ async function submitData() {
           Submit data
         </div>
       </li>
+      <li v-if="selectedProjectIsCollab" @click="() => { syncProjectCollaboration() }">
+        <div class="i-[solar--cloud-download-bold]" />
+        <div>
+          Sync project from cloud
+        </div>
+      </li>
     </template>
 
     <template v-if="!selectedProjectIsCollab">
+      <li v-if="isInCloud" @click="() => { syncProject() }">
+        <div class="i-[solar--refresh-bold]" />
+        <div>
+          Sync project
+        </div>
+      </li>
+
       <li
         v-if="isInCloud"
         @click="() => {

@@ -11,7 +11,8 @@ import { generateId } from "~/utils/generateId"
 export function useProjectStore() {
   const db = useDb()
 
-  const observable: Observable<Project[]> = liveQuery(() => db.project.toCollection().reverse().toArray())
+  // @ts-expect-error peer deps issue
+  const observable: Observable<Project[]> = liveQuery(() => db.project.toCollection().sortBy("updatedAt"))
   const projects = useObservable<Project[]>(observable)
 
   const getById = async (projectId: string) => {
@@ -26,7 +27,7 @@ export function useProjectStore() {
     }, id)
   }
 
-  const update = async (project: Project) => {
+  const update = async (project: Partial<Omit<Project, "id">> & { id: string }) => {
     await db.project.update(project.id, omit(project, ["id"]))
   }
 

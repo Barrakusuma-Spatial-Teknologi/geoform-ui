@@ -15,26 +15,9 @@ export default {
     },
   },
   plugins: [
-    // daisyui,
     primeUi,
     addDynamicIconSelectors({
       prefix: "i",
     }),
   ],
-  // daisyui: {
-  //   themes: [
-  //     {
-  //       light: {
-  //         ...themes.light,
-  //       },
-  //     },
-  //     // "dark",
-  //     {
-  //       dark: {
-  //         ...themes.dark,
-  //         "--rounded-btn": "0.5rem",
-  //       },
-  //     },
-  //   ],
-  // },
 } satisfies Config
