@@ -139,57 +139,6 @@ async function save(e: FormSubmitEvent) {
     feature.data[row.key] = rowValue
   }
 
-  // for (const row of fieldValues.value) {
-  //   const error: string[] = []
-  //   // const featureData = get(feature.data, row.key)
-  //   // if(fea)
-  //
-  //   const rowValue = match(row.value)
-  //     .returnType<undefined | string | number | boolean | Date | string[]>()
-  //     .with(P.array(), (values) => values as string[])
-  //     .with(P.string, (v) => v)
-  //     .with(P.number, (v) => v)
-  //     .otherwise((obj) => get(obj, "key") ?? get(obj, "value"))
-  //
-  //   if (rowValue == null && row.required) {
-  //     error.push("required, can not be empty")
-  //     if (row.type === FieldType.IMAGE) {
-  //       toast.add({
-  //         life: 5000,
-  //         closable: true,
-  //         severity: "error",
-  //         summary: `${row.name} is required, can not be empty`,
-  //       })
-  //       throw new Error("image cannot be empty")
-  //     }
-  //   }
-  //
-  //   if (row.type === FieldType.IMAGE && rowValue != null) {
-  //     feature.data[row.key] = await projectData.upsertImage(row.value as string, projectDataId, get(row, "meta.key"))
-  //     continue
-  //   }
-  //
-  //   feature.data[row.key] = rowValue
-  //
-  //   if (error.length > 0) {
-  //     errors.push({
-  //       name: row.name,
-  //       error,
-  //     })
-  //   }
-  // }
-
-  // if (errors.length > 0) {
-  //   toast.add({
-  //     life: 5000,
-  //     closable: true,
-  //     severity: "error",
-  //     summary: `Field: ${errors.map((e) => e.name).join(", ")} is required, can not be empty`,
-  //   })
-  //
-  //   return
-  // }
-
   if (props.projectDataId == null) {
     await projectData.add(feature)
   }
@@ -220,8 +169,6 @@ onActivated(async () => {
 onMounted(async () => {
   projectData = useProjectData(props.projectId)
   await resetFields()
-  console.log(initialValues.value)
-  console.log(createZodSchema(props.fields))
 })
 
 onBeforeUnmount(() => {
@@ -244,7 +191,7 @@ onDeactivated(() => {
       :resolver="validationSchema"
       @submit="save"
     >
-      <ul class="flex w-full grow basis-0 flex-col space-y-4 overflow-y-auto">
+      <ul class="box-border flex w-full grow basis-0 flex-col space-y-4 overflow-y-auto pb-8 pt-2">
         <li>
           <div class="text-sm text-surface-400">
             Location at
@@ -387,113 +334,6 @@ onDeactivated(() => {
         </Button>
       </div>
     </PvForm>
-
-    <!--    <div class="w-full grow basis-0 overflow-y-auto"> -->
-    <!--      <ul class="flex w-full flex-col space-y-4"> -->
-    <!--                <li> -->
-    <!--                  <div class="text-sm text-surface-400"> -->
-    <!--                    Location at -->
-    <!--                  </div> -->
-
-    <!--                  <div> -->
-    <!--                    {{ convertDDToDMS(props.coordinate.lng) }} ; {{ convertDDToDMS(props.coordinate.lat) }} -->
-    <!--                  </div> -->
-    <!--                </li> -->
-
-    <!--                <li v-for="field in fieldValues" :key="field.key" class="w-full" :class="[field.required ? 'required' : '']"> -->
-    <!--                  <template v-if="field.type === FieldType.TEXT"> -->
-    <!--                    <div class="space-y-1"> -->
-    <!--                      <label class="text-sm" :for="field.key"> -->
-    <!--                        {{ field.name }} -->
-    <!--                      </label> -->
-    <!--                      <InputText :id="field.key" v-model.lazy="field.value as string" fluid /> -->
-    <!--                    </div> -->
-    <!--                  </template> -->
-    <!--                  <template v-else-if="field.type === FieldType.NUMBER"> -->
-    <!--                    <div class="space-y-1"> -->
-    <!--                      <label class="text-sm" :for="field.key"> -->
-    <!--                        {{ field.name }} -->
-    <!--                        <template v-if="field.required">*</template> -->
-    <!--                      </label> -->
-    <!--                      <InputNumber :id="field.key" v-model.lazy="field.value as number" fluid /> -->
-    <!--                    </div> -->
-    <!--                  </template> -->
-
-    <!--                  <template v-else-if="field.type === FieldType.DATE"> -->
-    <!--                    <div class="space-y-1"> -->
-    <!--                      <label class="text-sm" :for="field.key"> -->
-    <!--                        {{ field.name }} -->
-    <!--                      </label> -->
-    <!--                      <DatePicker :id="field.key" v-model="field.value as Date" fluid /> -->
-    <!--                    </div> -->
-    <!--                  </template> -->
-
-    <!--                  <template v-else-if="field.type === FieldType.IMAGE"> -->
-    <!--                    <div class="space-y-1"> -->
-    <!--                      <label class="text-sm" :for="field.key"> -->
-    <!--                        {{ field.name }} -->
-    <!--                      </label> -->
-    <!--                      <FieldInputImage v-model:image="field.value as string" /> -->
-    <!--                    </div> -->
-    <!--                  </template> -->
-
-    <!--                  <template v-else-if="field.type === FieldType.CHECKBOX"> -->
-    <!--                    <div class="space-y-1"> -->
-    <!--                      <label class="text-sm" :for="field.key"> -->
-    <!--                        {{ field.name }} -->
-    <!--                      </label> -->
-    <!--                      <Listbox -->
-    <!--                        v-if="(field.fieldConfig?.options ?? []).length <= 4" -->
-    <!--                        v-model="field.value" -->
-    <!--                        :multiple="field.fieldConfig?.multiple ?? true" -->
-    <!--                        :options="field.fieldConfig?.options ?? []" option-label="value" option-value="key" class="w-full" -->
-    <!--                        fluid -->
-    <!--                      /> -->
-    <!--                      <MultiSelect -->
-    <!--                        v-else-if="field.fieldConfig?.multiple ?? true" -->
-    <!--                        v-model="field.value" -->
-    <!--                        filter -->
-    <!--                        :options="field.fieldConfig?.options ?? []" -->
-    <!--                        option-label="value" -->
-    <!--                        option-value="key" -->
-    <!--                        class="w-full" -->
-    <!--                        fluid -->
-    <!--                      /> -->
-    <!--                      <Select -->
-    <!--                        v-else -->
-    <!--                        v-model="field.value" -->
-    <!--                        filter -->
-    <!--                        :options="field.fieldConfig?.options ?? []" -->
-    <!--                        option-label="value" -->
-    <!--                        option-value="key" -->
-    <!--                        class="w-full" -->
-    <!--                        fluid -->
-    <!--                      /> -->
-    <!--                    </div> -->
-    <!--                  </template> -->
-
-    <!--                  <template v-else-if="field.type === FieldType.BOOLEAN"> -->
-    <!--                    <div class="flex items-center gap-2"> -->
-    <!--                      <Checkbox :id="field.key" v-model="field.value" binary /> -->
-    <!--                      <label :for="field.key"> {{ field.name }} </label> -->
-    <!--                    </div> -->
-    <!--                  </template> -->
-    <!--                </li> -->
-    <!--      </ul> -->
-    <!--    </div> -->
-
-    <!--    <div class="flex w-full justify-between gap-4"> -->
-    <!--      <Button -->
-    <!--        class="grow-0" variant="text" severity="secondary" @click="() => { -->
-    <!--          emits('close') -->
-    <!--        }" -->
-    <!--      > -->
-    <!--        Cancel -->
-    <!--      </Button> -->
-    <!--      <Button class="grow font-bold" @click="save"> -->
-    <!--        Save -->
-    <!--      </Button> -->
-    <!--    </div> -->
   </div>
 </template>
 

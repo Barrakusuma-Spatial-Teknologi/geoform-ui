@@ -10,3 +10,10 @@ html {
 .font-mono {
     font-family: "Roboto Mono Variable", sans-serif;
 }
+
+
+@media screen and (max-width: 1024px){
+  div.p-toast.p-component.p-toast-top-center, div.p-toast.p-component.p-toast-bottom-center {
+    @apply px-4 box-border;
+  }
+}

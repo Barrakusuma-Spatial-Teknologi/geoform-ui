@@ -17,8 +17,6 @@ const image = defineModel<string>("image", {
 })
 
 watch(image, () => {
-  console.log("emitting")
-
   const touched = image.value !== props.defaultValue
   //
   emits("validated", {

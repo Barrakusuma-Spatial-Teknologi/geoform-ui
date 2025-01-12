@@ -20,6 +20,8 @@ const {
 const projectOptionPopoverRef = ref<InstanceType<typeof Popover>>()
 const projectOptionVisible = ref(false)
 
+const addProjectOptionVisible = ref(false)
+
 function createNew() {
   navigateTo("/projects/new")
 }
@@ -132,74 +134,13 @@ async function exportGeoJSON() {
       />
     </Drawer>
 
-    <!--     <ul class="space-y-2"> -->
-    <!--        <li -->
-    <!--          @click="() => { -->
-    <!--            if (selectedProjectId == null) { -->
-    <!--              return -->
-    <!--            } -->
-    <!--            openProject(selectedProjectId) -->
-    <!--          }" -->
-    <!--        > -->
-    <!--          Edit -->
-    <!--        </li> -->
-
-    <!--        <li -->
-    <!--          v-if="!selectedProjectIsCollab" @click="() => { -->
-    <!--            shareProjectVisible = true -->
-    <!--          }" -->
-    <!--        > -->
-    <!--          Save to cloud -->
-    <!--        </li> -->
-
-    <!--        <li @click="exportGeoJSON"> -->
-    <!--          Export -->
-    <!--        </li> -->
-
-    <!--        <li @click="deleteProject"> -->
-    <!--          Delete -->
-    <!--        </li> -->
-    <!--      </ul> -->
-
-    <!--    <Popover ref="projectOptionPopoverRef"> -->
-    <!--      <ul class="space-y-2"> -->
-    <!--        <li -->
-    <!--          @click="() => { -->
-    <!--            if (selectedProjectIndex == null) { -->
-    <!--              return -->
-    <!--            } -->
-    <!--            openProject(selectedProjectIndex) -->
-    <!--          }" -->
-    <!--        > -->
-    <!--          Edit -->
-    <!--        </li> -->
-
-    <!--        <li @click="exportGeoJSON"> -->
-    <!--          Share -->
-    <!--        </li> -->
-
-    <!--        <li @click="exportGeoJSON"> -->
-    <!--          Export -->
-    <!--        </li> -->
-
-    <!--        <li @click="deleteProject"> -->
-    <!--          Delete -->
-    <!--        </li> -->
-    <!--      </ul> -->
-    <!--    </Popover> -->
-
     <div class="box-border grow basis-0 overflow-y-auto px-6 pb-6">
       <ul v-if="(projects?.length ?? -1) > 0" class="space-y-4">
         <template v-for="(project, index) in projects" :key="project.name">
           <li class="relative box-border flex w-full rounded-lg bg-surface-300 px-4 py-3 dark:bg-surface-800">
             <div class="grow space-y-2">
-              <div class=" flex w-full items-center justify-between font-bold" @click="startProject(project.id)">
+              <div class="flex w-full items-center justify-between font-bold" @click="startProject(project.id)">
                 <div>{{ project.name }}</div>
-
-                <!--              <Button severity="warn" size="small" variant="text" @click="startProject(project.id)"> -->
-                <!--                <i class="i-[solar&#45;&#45;play-bold]" /> -->
-                <!--                Survey -->
-                <!--              </Button> -->
               </div>
 
               <div class="flex w-full items-center space-x-4 text-xs">
@@ -257,14 +198,59 @@ async function exportGeoJSON() {
       </div>
     </div>
 
-    <div class="box-border flex items-center justify-center pb-8">
-      <Button @click="createNew">
-        Create new project
+    <Drawer
+      v-model:visible="addProjectOptionVisible"
+      pt:mask:class="backdrop-blur-sm"
+      class="rounded-t-xl xl:max-w-screen-md"
+      position="bottom"
+      style="height: auto"
+      header="Add project"
+      show-close-icon
+    >
+      <ul class="addProjectList">
+        <li v-ripple @click="createNew">
+          <div class="icon i-[solar--add-square-bold]" />
+          <div>Create new project</div>
+        </li>
+        <li
+          v-ripple @click="() => {
+            navigateTo('/projects/join-id')
+          }"
+        >
+          <div class="icon i-[solar--add-square-bold-duotone]" />
+          <div>Join by Project ID</div>
+        </li>
+        <li
+          v-ripple
+          @click="() => {
+            navigateTo('/projects/add-from-cloud')
+          }"
+        >
+          <div class="icon i-[solar--cloud-bolt-minimalistic-bold]" />
+          <div>Add project from cloud</div>
+        </li>
+      </ul>
+    </Drawer>
+
+    <div class="box-border flex items-center justify-center pb-6">
+      <Button @click="addProjectOptionVisible = true">
+        <div class="i-[material-symbols--add-2-rounded]" />
+        Add project
       </Button>
     </div>
   </div>
 </template>
 
 <style scoped>
+ul.addProjectList > li {
+  @apply flex items-center space-x-2  py-4;
+}
 
+ul.addProjectList > li > div.icon {
+  @apply text-2xl;
+}
+
+ul.addProjectList > li:not(:last-child) {
+  border-bottom: 1px solid var(--p-surface-700);
+}
 </style>

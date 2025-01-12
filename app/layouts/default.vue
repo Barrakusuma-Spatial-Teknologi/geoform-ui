@@ -38,14 +38,13 @@ async function logout() {
 <template>
   <div class="relative flex size-full flex-col justify-center">
     <Drawer
-      v-model:visible="configVisible" position="right"
+      v-model:visible="configVisible" position="bottom"
       pt:mask:class="backdrop-blur-sm"
+      style="height: auto"
+      header="Configuration"
+      class="rounded-lg"
     >
-      <template #header>
-        Configuration
-      </template>
-
-      <div class="flex flex-col space-y-2 ">
+      <div class="flex flex-col space-y-6 ">
         <CommonThemeButton show-label />
         <Button
           v-if="auth.isValid"

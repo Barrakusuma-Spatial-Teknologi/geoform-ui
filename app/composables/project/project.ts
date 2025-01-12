@@ -1,5 +1,6 @@
 import type { Observable } from "rxjs"
 import type { ProjectData, ProjectDataFeature } from "~/composables/project/model/project-data"
+import type { ProjectResponse } from "~/service/api/project"
 import { useObservable } from "@vueuse/rxjs"
 import { liveQuery } from "dexie"
 import { omit } from "es-toolkit"
@@ -27,6 +28,21 @@ export function useProjectStore() {
     }, id)
   }
 
+  const saveFromCloud = async (project: ProjectResponse) => {
+    const syncAt = Date.now()
+    return save({
+      syncAt,
+      createdAt: syncAt,
+      participantQuota: project.participantQuota,
+      fields: project.fields,
+      name: project.title,
+      isCollaboration: true,
+      createdBy: project.createdBy,
+      participantNum: project.participantNum,
+      versionId: project.versionId,
+    }, project.id)
+  }
+
   const update = async (project: Partial<Omit<Project, "id">> & { id: string }) => {
     await db.project.update(project.id, omit(project, ["id"]))
   }
@@ -39,6 +55,7 @@ export function useProjectStore() {
     projects,
 
     save,
+    saveFromCloud,
     update,
     remove,
     getById,

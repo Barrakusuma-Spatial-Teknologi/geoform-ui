@@ -12,6 +12,7 @@ const blocker = useUiBlocker()
 <template>
   <NuxtPwaManifest />
   <Toast position="top-center" />
+  <Toast position="bottom-center" group="bc" />
   <TransitionFade>
     <div v-if="blocker.state">
       <div class="absolute left-0 top-1/2 z-[9999999999] flex w-full flex-col items-center justify-center">
@@ -34,7 +35,7 @@ const blocker = useUiBlocker()
 html,
 body,
 #__nuxt {
-  height: 100vh;
+  height: 100dvh;
   margin: 0;
   padding: 0;
 }

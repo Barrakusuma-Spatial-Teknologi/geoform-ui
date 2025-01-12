@@ -40,6 +40,7 @@ export interface ProjectResponse {
   createdAt: string
   updatedAt?: string
   versionId?: string
+  isCollaboration: boolean
 }
 
 async function getById(projectId: string) {
@@ -227,10 +228,19 @@ async function removeParticipant(projectId: string, userId: string) {
   })
 }
 
+async function getAll(includeCollaboration = true) {
+  return await useMainServiceFetch<ProjectResponse[]>(`/projects`, {
+    query: {
+      includeCollaboration,
+    },
+  })
+}
+
 export const ProjectService = {
   getById,
   getByIdPublic,
   getLayers,
+  getAll,
 
   saveToCloud,
   update,

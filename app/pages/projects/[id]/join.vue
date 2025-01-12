@@ -23,7 +23,6 @@ const uiBlocker = useUiBlocker()
 
 async function joinSurvey() {
   if (!useAuth().isValid) {
-    // confirm
     loginCardVisible.value = true
     return
   }
@@ -70,6 +69,7 @@ async function joinSurvey() {
       severity: "error",
       summary: "Failed to join project",
       life: 3000,
+      group: "bc",
     })
   }
   finally {
@@ -91,6 +91,7 @@ onMounted(async () => {
       severity: "info",
       summary: "Already join, moving to survey page",
       life: 3500,
+      group: "bc",
     })
     await navigateTo(`/projects/${projectParamId}/survey`)
     return
