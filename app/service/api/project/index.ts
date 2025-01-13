@@ -222,6 +222,14 @@ async function join(projectId: string) {
   })
 }
 
+export interface UserResponse {
+  id: string
+  username: string
+}
+
+async function getParticipants(projectId: string) {
+  return useMainServiceFetch<UserResponse[]>(`/projects/${projectId}/participants`)
+}
 async function removeParticipant(projectId: string, userId: string) {
   await useMainServiceFetch(`/projects/${projectId}/participant/${userId}`, {
     method: "DELETE",
@@ -246,6 +254,9 @@ export const ProjectService = {
   update,
 
   join,
+
+  getParticipants,
+  removeParticipant,
 }
 
 export const ProjectDataService = {

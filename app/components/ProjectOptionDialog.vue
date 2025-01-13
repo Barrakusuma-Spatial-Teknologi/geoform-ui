@@ -144,6 +144,8 @@ async function syncProjectCollaboration() {
     blocker.hide()
   }
 }
+
+const manageAccessVisible = ref(false)
 </script>
 
 <template>
@@ -189,14 +191,43 @@ async function syncProjectCollaboration() {
       <li
         v-if="isInCloud"
         @click="() => {
-          copySharedLink()
+          manageAccessVisible = true
         }"
       >
-        <div class="i-[solar--link-bold]" />
+        <Dialog v-model:visible="manageAccessVisible" modal header="Manage access" :style="{ width: '25rem' }">
+          <div v-if="manageAccessVisible" class="h-[500px]">
+            <ManageAccess :project-id="props.project.id" />
+          </div>
+        </Dialog>
+
+        <div class="i-[solar--share-bold]" />
         <div>
-          Copy project link
+          Manage access
         </div>
       </li>
+
+      <!--      <li -->
+      <!--        v-if="isInCloud" -->
+      <!--        @click="() => { -->
+      <!--          copySharedLink() -->
+      <!--        }" -->
+      <!--      > -->
+      <!--        <div class="i-[solar&#45;&#45;link-bold]" /> -->
+      <!--        <div> -->
+      <!--          Copy project link -->
+      <!--        </div> -->
+      <!--      </li> -->
+      <!--      <li -->
+      <!--        v-if="isInCloud" -->
+      <!--        @click="() => { -->
+      <!--          copySharedLink() -->
+      <!--        }" -->
+      <!--      > -->
+      <!--        <div class="i-[solar&#45;&#45;link-bold]" /> -->
+      <!--        <div> -->
+      <!--          Project participant -->
+      <!--        </div> -->
+      <!--      </li> -->
       <li
         v-else
         @click="() => {
