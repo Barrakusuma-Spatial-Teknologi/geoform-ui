@@ -3,7 +3,9 @@ import type { FieldConfigSingularWrapper } from "~/components/ProjectConfig/form
 import { nanoid } from "nanoid"
 import {
   type FieldConfigCheckbox,
+  type FieldConfigDate,
   type FieldConfigImage,
+  type FieldConfigNumber,
   type FieldConfigText,
   fieldOptions,
   FieldType,
@@ -45,8 +47,12 @@ onMounted(() => {
 
     <IftaLabel fluid>
       <Select
-        v-model="field!.type" :disabled="field.strictChange" input-id="field-type" :options="fieldOptions"
-        class="w-full" variant="filled" @update:model-value="(v) => {
+        v-model="field!.type"
+        :disabled="field.strictChange"
+        input-id="field-type"
+        :options="fieldOptions"
+        class="w-full" variant="filled"
+        @update:model-value="(v) => {
           if (v === FieldType.CHECKBOX) {
             field!.fieldConfig = {
               options: [{
@@ -94,7 +100,7 @@ onMounted(() => {
           const key = generateLighterId()
           newlyAddedCheckboxOption.push(key)
 
-          field!.fieldConfig?.options.push({
+          field!.fieldConfig!.options.push({
             key,
             value: '',
           })
@@ -108,12 +114,14 @@ onMounted(() => {
 
     <template v-if="field.type === FieldType.NUMBER">
       <div class="flex items-center gap-2 py-1 text-sm">
-        <Checkbox :id="`${field.key}_decimal`" v-model="field!.fieldConfig.isFloat" binary />
+        <Checkbox :id="`${field.key}_decimal`" v-model="field!.fieldConfig!.isFloat" binary />
         <label :for="`${field.key}_decimal`"> Allow decimal </label>
       </div>
     </template>
 
-    <template v-if="field!.type === FieldType.TEXT || field!.type === FieldType.IMAGE">
+    <template
+      v-if="field!.type !== FieldType.CHECKBOX && field!.type !== FieldType.BOOLEAN"
+    >
       <CommonPanel class="rounded-lg bg-surface-950">
         <template #title>
           <div class="text-sm">
@@ -149,11 +157,13 @@ onMounted(() => {
               </IftaLabel>
             </InputGroup>
           </template>
+
           <template v-else-if="field!.type === FieldType.IMAGE">
             <InputGroup>
               <IftaLabel>
                 <InputNumber
-                  size="small" locale="id-ID" :default-value="field?.fieldConfig?.maxSize" @value-change="(v) => {
+                  size="small" locale="id-ID" :default-value="field?.fieldConfig?.maxSize"
+                  @value-change="(v) => {
                     if ('fieldConfig' in field) {
                       (field.fieldConfig as NonNullable<FieldConfigImage['fieldConfig']>).maxSize = v
                     }
@@ -165,6 +175,64 @@ onMounted(() => {
               <InputGroupAddon>
                 MB
               </InputGroupAddon>
+            </InputGroup>
+          </template>
+
+          <template v-else-if="field!.type === FieldType.NUMBER">
+            <InputGroup>
+              <IftaLabel>
+                <InputNumber
+                  size="small" :default-value="field?.fieldConfig?.min"
+                  locale="id-ID"
+                  @value-change="(v) => {
+                    if ('fieldConfig' in field) {
+                      (field.fieldConfig as NonNullable<FieldConfigNumber['fieldConfig']>).min = v
+                    }
+                  }"
+                />
+                <label>Min</label>
+              </IftaLabel>
+
+              <IftaLabel>
+                <InputNumber
+                  :default-value="field?.fieldConfig?.max" size="small" @value-change="(v) => {
+                    if ('fieldConfig' in field) {
+                      (field.fieldConfig as NonNullable<FieldConfigNumber['fieldConfig']>).max = v
+                    }
+                  }"
+                />
+                <label>Max</label>
+              </IftaLabel>
+            </InputGroup>
+          </template>
+
+          <template v-else-if="field!.type === FieldType.DATE">
+            <InputGroup>
+              <IftaLabel>
+                <DatePicker
+                  size="small"
+                  :default-value="field?.fieldConfig?.minDate != null ? new Date(field!.fieldConfig!.minDate) : undefined"
+                  locale="id-ID"
+                  @value-change="(v) => {
+                    if ('fieldConfig' in field) {
+                      (field.fieldConfig as NonNullable<FieldConfigDate['fieldConfig']>).minDate = (v as Date).toDateString()
+                    }
+                  }"
+                />
+                <label>Min date</label>
+              </IftaLabel>
+
+              <IftaLabel>
+                <DatePicker
+                  :default-value="field?.fieldConfig?.maxDate != null ? new Date(field!.fieldConfig!.maxDate) : undefined"
+                  size="small" @value-change="(v) => {
+                    if ('fieldConfig' in field) {
+                      (field.fieldConfig as NonNullable<FieldConfigDate['fieldConfig']>).maxDate = (v as Date).toDateString()
+                    }
+                  }"
+                />
+                <label>Max</label>
+              </IftaLabel>
             </InputGroup>
           </template>
         </div>

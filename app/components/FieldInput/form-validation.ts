@@ -71,18 +71,16 @@ export function createZodSchema(fields: FieldConfig[]) {
 
         return fieldSchema
       })
-      .with({ type: FieldType.CHECKBOX }, ({ fieldConfig }) => {
-        const fieldSchema = z.union([z.array(z.string()), z.string()])
-        return fieldSchema
+      .with({ type: FieldType.CHECKBOX }, () => {
+        return z.union([z.array(z.string()), z.string()])
       })
       .with({ type: FieldType.IMAGE }, ({ fieldConfig }) => {
-        const fieldSchema = z.string()
-        return fieldSchema
+        return z.string()
       })
-      .with({ type: FieldType.BOOLEAN }, ({ fieldConfig }) => {
+      .with({ type: FieldType.BOOLEAN }, () => {
         return z.boolean()
       })
-      .otherwise((o) => {
+      .otherwise((_o) => {
         return z.any()
       })
 

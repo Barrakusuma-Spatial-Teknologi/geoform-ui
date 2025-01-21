@@ -5,7 +5,6 @@ import type { FieldConfigImage } from "~/composables/project/model/project"
 const props = defineProps<{
   defaultValue?: string
   config?: NonNullable<FieldConfigImage["fieldConfig"]>
-  $primeField?: any
 }>()
 
 const emits = defineEmits<{
@@ -16,29 +15,19 @@ const image = defineModel<string>("image", {
   required: false,
 })
 
-watch(image, () => {
-  const touched = image.value !== props.defaultValue
-  //
-  emits("validated", {
-    value: image.value ?? props.defaultValue,
-    touched,
-    dirty: touched,
-    valid: true,
-  } as FormFieldState)
-})
-
 const takePictureVisible = ref(false)
 
 const {
   open,
   onChange,
 } = useFileDialog({
-  accept: "image/*",
+  accept: "image/jpeg",
   multiple: false,
 })
 
+// function validateImage() {}
+const toast = useToast()
 onChange((files) => {
-  console.debug("changed")
   if (files == null) {
     return
   }
@@ -46,6 +35,18 @@ onChange((files) => {
   const item = files.item(0)
   if (item == null) {
     return
+  }
+
+  if (props.config != null) {
+    if (props.config?.maxSize != null && item.size > mbToByte(props.config!.maxSize!)) {
+      toast.add({
+        severity: "error",
+        life: 3000,
+        summary: `Image size should be smaller than ${props.config!.maxSize} MB`,
+        group: "bc",
+      })
+      return
+    }
   }
 
   const reader = new FileReader()
@@ -80,7 +81,13 @@ onChange((files) => {
 
     <div class="flex w-full justify-center">
       <ButtonGroup fluid size="small">
-        <Button size="small" @click="open">
+        <Button
+          size="small" @click="() => {
+            open({
+              accept: props.config?.acceptedFormats?.map((f) => `.${f}`)?.join(';') ?? 'image/jpeg',
+            })
+          }"
+        >
           Upload
         </Button>
         <Button

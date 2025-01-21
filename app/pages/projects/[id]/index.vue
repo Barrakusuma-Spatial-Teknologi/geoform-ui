@@ -8,6 +8,8 @@ import { useAuth } from "~/composables/auth"
 import { useLayoutTitle } from "~/composables/layout"
 import { useProjectStore } from "~/composables/project/project"
 import { useProjectLayer } from "~/composables/project/project-layer"
+import { useUiBlocker } from "~/composables/ui/blocker"
+import { ProjectService } from "~/service/api/project"
 
 definePageMeta({
   backTo: "/",
@@ -35,6 +37,31 @@ const toast = useToast()
 const fields = ref<FieldConfigWrapper[]>([])
 const layers = ref<SpatialDataLayers[]>([])
 const auth = useAuth()
+const isOnline = useOnline()
+const blocker = useUiBlocker()
+
+async function syncProject(selected: string) {
+  blocker.show("Syncing project configuration...")
+  try {
+    await ProjectService.update(selected)
+    toast.add({
+      severity: "success",
+      summary: "Project synced successfully.",
+      life: 3000,
+    })
+  }
+  catch (e) {
+    console.error(e)
+    toast.add({
+      summary: "Failed to sync project",
+      severity: "error",
+      closable: true,
+    })
+  }
+  finally {
+    blocker.hide()
+  }
+}
 
 async function saveProject() {
   const parsedFields = fields.value.map((field) => ({
@@ -97,6 +124,10 @@ async function saveProject() {
         layerData: toRaw(layer.layerData),
         createdAt: get(layer, "createdAt", Date.now()),
       })
+    }
+
+    if (selected.syncAt != null && isOnline.value) {
+      await syncProject(projectId.value)
     }
   }
 

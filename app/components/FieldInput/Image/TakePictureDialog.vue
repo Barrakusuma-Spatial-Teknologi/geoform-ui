@@ -44,8 +44,8 @@ async function selectCamera(cameraId: string) {
   videoRef.value!.srcObject = await navigator.mediaDevices.getUserMedia({
     video: {
       deviceId: cameraId,
-      width: { ideal: 1920 }, // Preferred width
-      height: { ideal: 1080 }, // Preferred height
+      width: { ideal: 3840 }, // Preferred width
+      height: { ideal: 2160 }, // Preferred height
     },
   })
 

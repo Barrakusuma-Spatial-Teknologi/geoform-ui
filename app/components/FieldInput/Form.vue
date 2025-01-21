@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { ProjectDataFeature } from "~/composables/project/model/project-data"
-import { type FormFieldState, type FormSubmitEvent, Form as PvForm } from "@primevue/forms"
+import { type FormSubmitEvent, Form as PvForm } from "@primevue/forms"
 import { zodResolver } from "@primevue/forms/resolvers/zod"
 import { get } from "es-toolkit/compat"
 import { createZodSchema } from "~/components/FieldInput/form-validation"
@@ -42,7 +42,6 @@ const watchField = watchPausable(fieldValues, () => {
 let projectData!: ReturnType<typeof useProjectData>
 
 async function resetFields() {
-  console.log("init reset")
   const data = props.projectDataId != null ? await projectData.getById(props.projectDataId) : {}
   const init: Record<string, any> = {}
 
@@ -70,8 +69,6 @@ async function resetFields() {
 
       init[field.key] = value
 
-      console.log("init value = ", field.key, value)
-
       return {
         ...field,
         value,
@@ -80,7 +77,6 @@ async function resetFields() {
     }),
   )
 
-  console.log("init", init)
   initialValues.value = init
   watchField.resume()
 }
@@ -252,12 +248,15 @@ onDeactivated(() => {
               <label class="text-sm" :for="field.key">
                 {{ field.name }}
               </label>
-              <FormField v-slot="$field" :name="field.key">
+              <FormField v-slot="$field" :name="field.key" :initial-value="$form[field.key]?.value">
                 <FieldInputImage
                   :id="field.key"
                   :default-value="$form[field.key]?.value"
-                  @validated="(v: FormFieldState) => {
-                    $field.onInput(v)
+                  :config="field.fieldConfig"
+                  :prime-field="$field"
+                  @update:image="(value) => {
+                    // @ts-expect-error fast bypass
+                    $field.onInput({ data: value, value } as InputEvent)
                   }"
                 />
 
