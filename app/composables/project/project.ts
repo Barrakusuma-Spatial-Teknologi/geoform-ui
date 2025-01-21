@@ -28,7 +28,7 @@ export function useProjectStore() {
     }, id)
   }
 
-  const saveFromCloud = async (project: ProjectResponse) => {
+  const saveFromCloud = async (project: Omit<ProjectResponse, "isCollaboration">, isCollaboration: boolean = true) => {
     const syncAt = Date.now()
     return save({
       syncAt,
@@ -36,7 +36,7 @@ export function useProjectStore() {
       participantQuota: project.participantQuota,
       fields: project.fields,
       name: project.title,
-      isCollaboration: true,
+      isCollaboration,
       createdBy: project.createdBy,
       participantNum: project.participantNum,
       versionId: project.versionId,
@@ -87,7 +87,7 @@ export async function remapFieldValue(fields: FieldConfig[], feature: ProjectDat
           return f.fieldConfig!.options.find((opt) => opt.key === value)?.value ?? ""
         }
 
-        return value.map((v) => f.fieldConfig!.options.find((opt) => opt.key === v)?.value ?? "")
+        return value.map((v: any) => f.fieldConfig!.options.find((opt) => opt.key === v)?.value ?? "")
       })
       .otherwise(async () => data[field.key])
   }

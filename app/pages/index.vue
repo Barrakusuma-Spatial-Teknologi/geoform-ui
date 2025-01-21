@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { FeatureCollection } from "geojson"
-import type { Popover } from "primevue"
 
 import { UseTimeAgo } from "@vueuse/components"
 import ProjectOptionDialog from "~/components/ProjectOptionDialog.vue"
@@ -17,7 +16,7 @@ const {
   projects,
   remove,
 } = useProjectStore()
-const projectOptionPopoverRef = ref<InstanceType<typeof Popover>>()
+
 const projectOptionVisible = ref(false)
 
 const addProjectOptionVisible = ref(false)
@@ -59,7 +58,7 @@ async function deleteProject() {
   }
 
   await remove(selectedProjectId.value)
-  projectOptionPopoverRef.value?.hide()
+  projectOptionVisible.value = false
 }
 
 const shareProjectVisible = ref(false)
@@ -99,7 +98,7 @@ async function exportGeoJSON() {
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
-  projectOptionPopoverRef.value?.hide()
+  projectOptionVisible.value = false
 }
 </script>
 

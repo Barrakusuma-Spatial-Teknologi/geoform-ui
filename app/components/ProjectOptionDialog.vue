@@ -20,7 +20,7 @@ const selectedProjectIsCollab = computed(() => {
 })
 
 const isInCloud = computed(() => {
-  return props.project.syncAt != null
+  return props.project?.syncAt != null
 })
 
 const clipboard = useClipboard()

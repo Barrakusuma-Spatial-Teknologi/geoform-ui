@@ -103,7 +103,7 @@ importers:
         version: 12.3.0(typescript@5.7.2)
       '@vueuse/integrations':
         specifier: ^12.3.0
-        version: 12.3.0(axios@1.7.9)(change-case@5.4.4)(nprogress@0.2.0)(typescript@5.7.2)
+        version: 12.3.0(axios@1.7.9)(change-case@5.4.4)(jwt-decode@4.0.0)(nprogress@0.2.0)(typescript@5.7.2)
       '@vueuse/nuxt':
         specifier: ^12.3.0
         version: 12.3.0(magicast@0.3.5)(nuxt@3.15.1(@libsql/client@0.14.0)(@parcel/watcher@2.4.1)(@types/node@22.10.2)(db0@0.2.1(@libsql/client@0.14.0)(drizzle-orm@0.38.3(@libsql/client@0.14.0)(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.12)(kysely@0.27.4)(react@18.2.0)))(drizzle-orm@0.38.3(@libsql/client@0.14.0)(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.12)(kysely@0.27.4)(react@18.2.0))(encoding@0.1.13)(eslint@9.17.0(jiti@2.4.2))(ioredis@5.4.1)(magicast@0.3.5)(optionator@0.9.3)(rollup@4.24.3)(terser@5.27.0)(tsx@4.19.2)(typescript@5.7.2)(vite@6.0.7(@types/node@22.10.2)(jiti@2.4.2)(terser@5.27.0)(tsx@4.19.2)(yaml@2.7.0))(vue-tsc@2.2.0(typescript@5.7.2))(yaml@2.7.0))(rollup@4.24.3)(typescript@5.7.2)
@@ -161,6 +161,9 @@ importers:
       jsonwebtoken:
         specifier: ^9.0.2
         version: 9.0.2
+      jwt-decode:
+        specifier: ^4.0.0
+        version: 4.0.0
       lint-staged:
         specifier: ^15.3.0
         version: 15.3.0
@@ -5750,6 +5753,10 @@ packages:
 
   jws@3.2.2:
     resolution: {integrity: sha512-YHlZCB6lMTllWDtSPHz/ZXTsi8S00usEV6v1tjq8tOUZzw7DpSDWVXjXDre6ed1w/pd495ODpHZYSdkRTsa0HA==}
+
+  jwt-decode@4.0.0:
+    resolution: {integrity: sha512-+KJGIyHgkGuIq3IEBNftfhW/LfWhXUIY6OmyVWjliu5KH1y0fw7VQ8YndE2O4qZdMSd9SqbnC8GOcZEy0Om7sA==}
+    engines: {node: '>=18'}
 
   kdbush@4.0.2:
     resolution: {integrity: sha512-WbCVYJ27Sz8zi9Q7Q0xHC+05iwkm3Znipc2XTlrnJbsHMYktW4hPhXUE8Ys1engBrvffoSCqbil1JQAa7clRpA==}
@@ -11976,7 +11983,7 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
-  '@vueuse/integrations@12.3.0(axios@1.7.9)(change-case@5.4.4)(nprogress@0.2.0)(typescript@5.7.2)':
+  '@vueuse/integrations@12.3.0(axios@1.7.9)(change-case@5.4.4)(jwt-decode@4.0.0)(nprogress@0.2.0)(typescript@5.7.2)':
     dependencies:
       '@vueuse/core': 12.3.0(typescript@5.7.2)
       '@vueuse/shared': 12.3.0(typescript@5.7.2)
@@ -11984,6 +11991,7 @@ snapshots:
     optionalDependencies:
       axios: 1.7.9(debug@4.3.7)
       change-case: 5.4.4
+      jwt-decode: 4.0.0
       nprogress: 0.2.0
     transitivePeerDependencies:
       - typescript
@@ -14810,6 +14818,8 @@ snapshots:
     dependencies:
       jwa: 1.4.1
       safe-buffer: 5.2.1
+
+  jwt-decode@4.0.0: {}
 
   kdbush@4.0.2: {}
 

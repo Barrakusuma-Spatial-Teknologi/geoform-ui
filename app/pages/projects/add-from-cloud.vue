@@ -85,8 +85,9 @@ async function addProjectToLocal() {
     blocker.show("Saving project config...")
     const projectRes = await ProjectService.getById(projectId)
     const project = projectRes.data
+    const projectItem = projects.value.find((row) => row.id === projectId)!
 
-    await projectStore.saveFromCloud(project)
+    await projectStore.saveFromCloud(project, projectItem.isCollaboration)
 
     blocker.show("Saving project layers")
 
@@ -94,6 +95,11 @@ async function addProjectToLocal() {
     const layers = layerRes.data
     await useDb().projectLayer.bulkAdd(layers)
     addProjectDialogVisible.value = false
+    toast.add({
+      severity: "success",
+      summary: `Project ${project.title} has been added successfully.`,
+      group: "bc",
+    })
   }
   catch (e) {
     console.error(e)

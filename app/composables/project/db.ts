@@ -49,7 +49,7 @@ type DatabaseInstance = Dexie & {
 let db!: DatabaseInstance
 
 export function useDb() {
-  if (db == null) {
+  if (db == null || db.hasBeenClosed()) {
     db = new Dexie("projectData") as DatabaseInstance
   }
 
