@@ -29,7 +29,7 @@ export const fieldOptions: FieldType[] = [
   FieldType.CHECKBOX,
   FieldType.IMAGE,
   FieldType.BOOLEAN,
-  FieldType.NESTED,
+  // FieldType.NESTED,
 ]
 
 interface FC<FT extends FieldType> {
