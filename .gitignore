@@ -25,3 +25,6 @@ logs
 *.sqlite
 *.sqlite*
 certs/*
+
+# Sentry Config File
+.env.sentry-build-plugin
