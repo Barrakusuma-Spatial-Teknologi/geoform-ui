@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Project } from "~/composables/project/model/project"
+import * as Sentry from "@sentry/nuxt"
 import { useDb } from "~/composables/project/db"
 import { useUiBlocker } from "~/composables/ui/blocker"
 import { ProjectDataService, ProjectService } from "~/service/api/project"
@@ -25,6 +26,7 @@ const isInCloud = computed(() => {
 
 const clipboard = useClipboard()
 const toast = useToast()
+
 function copySharedLink() {
   clipboard.copy(`${window.location.origin}/projects/${props.project.id}/join`)
   toast.add({
@@ -35,6 +37,7 @@ function copySharedLink() {
 }
 
 const blocker = useUiBlocker()
+
 async function submitData() {
   blocker.show("Submitting image")
 
@@ -43,12 +46,12 @@ async function submitData() {
   }
   catch (e) {
     blocker.hide()
-    console.error(e)
     toast.add({
       summary: "Failed to submit image",
       severity: "error",
       closable: true,
     })
+    Sentry.captureException(e)
     return
   }
 
@@ -63,12 +66,12 @@ async function submitData() {
     })
   }
   catch (e) {
-    console.error(e)
     toast.add({
       summary: "Failed to submit data",
       severity: "error",
       closable: true,
     })
+    Sentry.captureException(e)
   }
   finally {
     blocker.hide()
@@ -81,13 +84,13 @@ async function syncProject() {
     await ProjectService.update(props.project.id)
   }
   catch (e) {
-    console.error(e)
     toast.add({
       summary: "Failed to sync project",
       severity: "error",
       closable: true,
     })
     blocker.hide()
+    Sentry.captureException(e)
     return
   }
 
@@ -133,12 +136,12 @@ async function syncProjectCollaboration() {
     })
   }
   catch (e) {
-    console.error(e)
     toast.add({
       severity: "error",
       summary: "Failed to update project",
       life: 3000,
     })
+    Sentry.captureException(e)
   }
   finally {
     blocker.hide()
@@ -206,28 +209,6 @@ const manageAccessVisible = ref(false)
         </div>
       </li>
 
-      <!--      <li -->
-      <!--        v-if="isInCloud" -->
-      <!--        @click="() => { -->
-      <!--          copySharedLink() -->
-      <!--        }" -->
-      <!--      > -->
-      <!--        <div class="i-[solar&#45;&#45;link-bold]" /> -->
-      <!--        <div> -->
-      <!--          Copy project link -->
-      <!--        </div> -->
-      <!--      </li> -->
-      <!--      <li -->
-      <!--        v-if="isInCloud" -->
-      <!--        @click="() => { -->
-      <!--          copySharedLink() -->
-      <!--        }" -->
-      <!--      > -->
-      <!--        <div class="i-[solar&#45;&#45;link-bold]" /> -->
-      <!--        <div> -->
-      <!--          Project participant -->
-      <!--        </div> -->
-      <!--      </li> -->
       <li
         v-else
         @click="() => {

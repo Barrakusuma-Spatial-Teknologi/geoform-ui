@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import * as Sentry from "@sentry/nuxt"
 import { get } from "es-toolkit/compat"
 import LoginForm from "~/components/common/LoginForm.vue"
 import { useAuth } from "~/composables/auth"
@@ -64,13 +65,13 @@ async function joinSurvey() {
     navigateTo("/")
   }
   catch (e) {
-    console.error(e)
     toast.add({
       severity: "error",
       summary: "Failed to join project",
       life: 3000,
       group: "bc",
     })
+    Sentry.captureException(e)
   }
   finally {
     uiBlocker.hide()

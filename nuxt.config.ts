@@ -16,10 +16,10 @@ export default defineNuxtConfig({
     "@primevue/nuxt-module",
     "@morev/vue-transitions/nuxt",
     "@vee-validate/nuxt",
+    "@sentry/nuxt/module",
   ],
 
   plugins: [],
-
   ssr: false,
 
   devtools: {
@@ -81,7 +81,15 @@ export default defineNuxtConfig({
     public: {
       apiUrl: "",
     },
+    sentry: {
+      dsn: "",
+    },
   },
+
+  sourcemap: {
+    client: "hidden",
+  },
+
   devServer: {
     https: {
       cert: "./certs/cert.pem",
@@ -115,6 +123,7 @@ export default defineNuxtConfig({
       ignore: ["/", "/hi"],
     },
   },
+
   nitro: {
     prerender: {
       routes: ["/"],
@@ -211,6 +220,9 @@ export default defineNuxtConfig({
   },
 
   pwa,
+
+  sentry: {},
+
   veeValidate: {
     // disable or enable auto imports
     autoImports: true,
