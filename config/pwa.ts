@@ -31,7 +31,7 @@ export const pwa: ModuleOptions = {
   workbox: {
     globPatterns: ["**/*.{js,css,html,txt,png,ico,svg,woff2}"],
     navigateFallbackDenylist: [/^\/api\//],
-    navigateFallback: undefined,
+    navigateFallback: "/",
     navigateFallbackAllowlist: [/^\/$/],
     cleanupOutdatedCaches: true,
     runtimeCaching: [
