@@ -18,7 +18,7 @@ export interface MainServiceOpt extends NitroFetchOptions<string> {
  */
 export async function useMainServiceFetch<R, O = MainServiceOpt>(path: string, opt: O = {} as O): Promise<JSendBase<R>> {
   const auth = useAuth()
-  const { apiUrl } = useRuntimeConfig().public
+  const { apiUrl = `${window.location.origin}/api` } = useRuntimeConfig().public
   const headers = new Headers(get(opt, "headers", {}))
   if (!get(opt, "removeAuth", false)) {
     headers.set("Authorization", `Bearer ${auth.jwtToken ?? ""}`)
