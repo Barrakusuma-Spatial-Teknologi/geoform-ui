@@ -1,7 +1,7 @@
 import { useRuntimeConfig } from "#imports"
 import * as Sentry from "@sentry/nuxt"
 
-console.log("runtime", useRuntimeConfig())
+console.log("runtime api url =", useRuntimeConfig()?.public?.apiUrl)
 Sentry.init({
   // If set up, you can use your runtime config here
   // dsn: useRuntimeConfig().public.sentry.dsn,
