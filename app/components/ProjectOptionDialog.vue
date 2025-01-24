@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import type { Project } from "~/composables/project/model/project"
-import * as Sentry from "@sentry/nuxt"
 import { useDb } from "~/composables/project/db"
 import { useUiBlocker } from "~/composables/ui/blocker"
 import { ProjectDataService, ProjectService } from "~/service/api/project"
+import { captureToSentry } from "~/utils/captureToSentry"
 
 const props = defineProps<{
   project: Project
@@ -24,17 +24,7 @@ const isInCloud = computed(() => {
   return props.project?.syncAt != null
 })
 
-const clipboard = useClipboard()
 const toast = useToast()
-
-function copySharedLink() {
-  clipboard.copy(`${window.location.origin}/projects/${props.project.id}/join`)
-  toast.add({
-    severity: "success",
-    summary: "URL copied to clipboard",
-    life: 3000,
-  })
-}
 
 const blocker = useUiBlocker()
 
@@ -51,7 +41,7 @@ async function submitData() {
       severity: "error",
       closable: true,
     })
-    Sentry.captureException(e)
+    captureToSentry(e)
     return
   }
 
@@ -71,7 +61,7 @@ async function submitData() {
       severity: "error",
       closable: true,
     })
-    Sentry.captureException(e)
+    captureToSentry(e)
   }
   finally {
     blocker.hide()
@@ -90,7 +80,7 @@ async function syncProject() {
       closable: true,
     })
     blocker.hide()
-    Sentry.captureException(e)
+    captureToSentry(e)
     return
   }
 
@@ -110,7 +100,7 @@ async function syncProjectCollaboration() {
     const layers = layerRes.data
 
     const db = useDb()
-    await useDb().transaction("rw?", [db.project, db.projectLayer], async (tx) => {
+    await useDb().transaction("rw?", [db.project, db.projectLayer], async (_tx) => {
       await db.project.update(project.id, {
         syncAt,
         createdAt: syncAt,
@@ -141,7 +131,7 @@ async function syncProjectCollaboration() {
       summary: "Failed to update project",
       life: 3000,
     })
-    Sentry.captureException(e)
+    captureToSentry(e)
   }
   finally {
     blocker.hide()
