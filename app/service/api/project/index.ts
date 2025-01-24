@@ -157,7 +157,7 @@ async function submitAllImage(projectId: string, limit?: number) {
     images: rows.map((row) => ({
       id: row.id,
       image: row.image,
-      projectDataId: row.projectId,
+      projectDataId: row.projectDataId,
     })),
   }
   await useMainServiceFetch(`/projects/images/batch-create`, {
