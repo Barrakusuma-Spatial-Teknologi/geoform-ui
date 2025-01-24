@@ -91,6 +91,18 @@ export function useProjectData(projectId: string) {
     })
   }
 
+  const getById = async (id: string) => {
+    const data = await db.projectData.get(id)
+    if (data == null) {
+      return
+    }
+
+    return {
+      ...data,
+      data: JSON.parse(data.data as string) as ProjectDataFeature,
+    } as ProjectData<ProjectDataFeature>
+  }
+
   const update = async (id: string, feature: ProjectDataFeature) => {
     await db.projectData.update(id, {
       data: JSON.stringify(feature),
@@ -104,15 +116,6 @@ export function useProjectData(projectId: string) {
     })
   }
 
-  const deleteItem = async (id: string) => {
-    await db.projectData.delete(id)
-    changeTrackerChannel.publish({
-      changeType: TableChangeType.Delete,
-      projectId,
-      dataId: id,
-    })
-  }
-
   const getAll = async () => {
     return (await db.projectData.where("projectId").equals(projectId).toArray())
       .map((row) => ({
@@ -121,16 +124,30 @@ export function useProjectData(projectId: string) {
       }))
   }
 
-  const getById = async (id: string) => {
-    const data = await db.projectData.get(id)
-    if (data == null) {
-      return
+  const getByIds = async (id: string[]) => {
+    const data = await db.projectData.where("id").anyOf(id).toArray()
+    if (data.length === 0) {
+      return [] as ProjectData<ProjectDataFeature>[]
     }
 
-    return {
-      ...data,
-      data: JSON.parse(data.data as string) as ProjectDataFeature,
-    }
+    return data.map((row) => {
+      return {
+        ...row,
+        data: JSON.parse(row.data as string) as ProjectDataFeature,
+      }
+    }) as ProjectData<ProjectDataFeature>[]
+  }
+
+  const deleteItem = async (id: string) => {
+    const existing = await getById(id)
+    await db.projectData.delete(id)
+    await db.image.filter((row) => row.projectDataId === id).delete()
+    changeTrackerChannel.publish({
+      changeType: TableChangeType.Delete,
+      projectId,
+      dataId: id,
+      existingProjectData: existing,
+    })
   }
 
   return {
@@ -141,6 +158,7 @@ export function useProjectData(projectId: string) {
     delete: deleteItem,
     getAll,
     getById,
+    getByIds,
 
     getImage,
     addImage,

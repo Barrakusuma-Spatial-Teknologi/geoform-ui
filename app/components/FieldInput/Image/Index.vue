@@ -75,7 +75,7 @@ onChange((files) => {
       </Drawer>
     </Teleport>
 
-    <div v-if="image != null" class="flex min-h-[100px] w-[250px] items-center justify-center">
+    <div v-if="image != null || props.defaultValue != null" class="flex min-h-[100px] w-[250px] items-center justify-center">
       <Image class="mb-2" :src="image ?? props.defaultValue" alt="Image" width="250" preview />
     </div>
 

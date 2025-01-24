@@ -77,16 +77,9 @@ const broker = new MessageBroker<{
     changeType: TableChangeType
     projectId?: string
     dataId: string
+    existingProjectData?: ProjectData
   }
 }>(new RSVPMediator())
-
-// const broker = messagebroker<{
-//   changeTracker: {
-//     changeType: TableChangeType
-//     projectId?: string
-//     dataId: string
-//   }
-// }>()
 
 export const changeTrackerChannel = broker.create("changeTracker")
 
@@ -99,10 +92,9 @@ export function trackProjectDataChanges() {
       return
     }
 
-    const existingProjectData = await db.projectData.get(data.dataId)
+    const existingProjectData = data.existingProjectData
 
     if (data.changeType === TableChangeType.Insert) {
-    // const existing = db
       const isFromCloud = (existingProjectData?.syncAt ?? 0) >= (existingProjectData?.createdAt ?? Number.POSITIVE_INFINITY)
       if (isFromCloud) {
         return
@@ -171,38 +163,8 @@ export function trackProjectDataChanges() {
           return
         }
 
-        await db.changesHistory.delete(existingChange.dataId)
+        await db.changesHistory.delete(existingChange.id)
       }
     }
   })
-
-  // db.projectData.hook("creating", async function (id, obj, _tx) {
-  //   this.onsuccess = (primaryKey) => {
-  //     channel.publish({
-  //       changeType: TableChangeType.Insert,
-  //       projectId: obj?.projectId,
-  //       dataId: primaryKey,
-  //     })
-  //   }
-  // })
-  //
-  // db.projectData.hook("updating", async function (mod, primaryKey, obj, _tx) {
-  //   this.onsuccess = () => {
-  //     channel.publish({
-  //       changeType: TableChangeType.Update,
-  //       projectId: obj?.projectId,
-  //       dataId: primaryKey,
-  //     })
-  //   }
-  // })
-  //
-  // db.projectData.hook("deleting", async function (primaryKey, obj, _tx) {
-  //   this.onsuccess = () => {
-  //     channel.publish({
-  //       changeType: TableChangeType.Delete,
-  //       projectId: obj?.projectId,
-  //       dataId: primaryKey,
-  //     })
-  //   }
-  // })
 }

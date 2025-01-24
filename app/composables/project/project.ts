@@ -48,6 +48,10 @@ export function useProjectStore() {
   }
 
   const remove = async (id: string) => {
+    await db.projectData.filter((row) => row.projectId === id).delete()
+    await db.projectLayer.filter((row) => row.projectId === id).delete()
+    await db.image.filter((row) => row.projectId === id).delete()
+    await db.changesHistory.filter((row) => row.projectId === id).delete()
     await db.project.delete(id)
   }
 

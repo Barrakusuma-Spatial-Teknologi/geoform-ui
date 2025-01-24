@@ -450,8 +450,20 @@ onMounted(async () => {
             :project-id="projectIndex"
             :fields="selectedProject?.fields ?? []"
             :coordinate="selectedCoordinate"
-            @close="closeCallback"
+            @close="() => {
+              projectDataIdSelected = undefined
+              selectedCoordinate = {
+                lng: 0,
+                lat: 0,
+              }
+              closeCallback()
+            }"
             @save="() => {
+              projectDataIdSelected = undefined
+              selectedCoordinate = {
+                lng: 0,
+                lat: 0,
+              }
               closeCallback()
             }"
           />

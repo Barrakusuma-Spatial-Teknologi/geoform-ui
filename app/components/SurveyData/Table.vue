@@ -12,6 +12,7 @@ const emits = defineEmits<{
   edit: [dataId: string, coordinate: [number, number]]
 }>()
 
+const isLoadingData = ref(false)
 const fields = ref<FieldConfig[]>([])
 const data = ref<ProjectDataFeature[]>([])
 const { projects, getById } = useProjectStore()
@@ -26,20 +27,30 @@ async function deleteData(dataId: string) {
   await loadData()
 }
 onMounted(async () => {
-  const project = await getById(props.projectId)
-  if (project == null) {
-    return
-  }
-  fields.value = project.fields
+  isLoadingData.value = true
+  try {
+    const project = await getById(props.projectId)
+    if (project == null) {
+      isLoadingData.value = false
+      return
+    }
+    fields.value = project.fields
 
-  projectData = useProjectData(props.projectId)
-  await loadData()
+    projectData = useProjectData(props.projectId)
+    await loadData()
+  }
+  catch (e) {
+    captureToSentry(e)
+  }
+  finally {
+    isLoadingData.value = false
+  }
 })
 </script>
 
 <template>
-  <DataTable :value="data">
-    <template v-for="field in fields" :key="field">
+  <DataTable :value="data" :loading="isLoadingData">
+    <template v-for="field in fields" :key="field.key">
       <Column :field="field.name" :header="field.name" style="min-width: 150px">
         <template v-if="field.type === FieldType.IMAGE" #body="slotProps">
           <Image :src="slotProps.data[field.name]" alt="Image" width="100" preview />

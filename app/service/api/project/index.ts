@@ -139,14 +139,18 @@ export interface SubmitImagePayload {
     image: string
   }[]
 }
-async function submitAllImage(projectId: string) {
-  const rows = await useDb().image.filter((o) => {
+async function submitAllImage(projectId: string, limit?: number) {
+  let imageQuery = useDb().image.filter((o) => {
     if (o.projectId !== projectId) {
       return false
     }
 
     return o.syncAt == null || o.syncAt < o.updatedAt
-  }).toArray()
+  })
+  if (limit) {
+    imageQuery = imageQuery.limit(limit)
+  }
+  const rows = await imageQuery.toArray()
 
   const body: SubmitImagePayload = {
     projectId,
@@ -166,6 +170,18 @@ async function submitAllImage(projectId: string) {
     syncAt,
     createdAt: syncAt,
   })
+}
+
+async function countImageNeedSync(projectId: string) {
+  const counted = await useDb().image.filter((o) => {
+    if (o.projectId !== projectId) {
+      return false
+    }
+
+    return o.syncAt == null || o.syncAt < o.updatedAt
+  }).count()
+
+  return counted
 }
 
 export interface SyncProjectDataPayload {
@@ -216,6 +232,72 @@ async function syncProjectData(projectId: string) {
   await useDb().changesHistory.where("projectId").equals(projectId).delete()
 }
 
+/**
+ * sync updated or new data
+ * @param projectId
+ * @param limit
+ */
+async function syncProjectDataUpdate(projectId: string, limit?: number) {
+  const project = await useProjectStore().getById(projectId)
+  if (project?.versionId == null) {
+    throw new Error("need to sync")
+  }
+
+  let tableChangeQuery = useDb().changesHistory.filter((row) => row.projectId === projectId && row.changeType !== TableChangeType.Delete)
+  if (limit != null) {
+    tableChangeQuery = tableChangeQuery.limit(limit)
+  }
+  const modified = await tableChangeQuery.toArray()
+  const modifiedDataId = modified.map((row) => row.dataId)
+  const modifiedRowId = modified.map((row) => row.id)
+
+  const projectDataStore = useProjectData(projectId)
+  const rows = await projectDataStore.getByIds(modifiedDataId)
+
+  await useMainServiceFetch(`/projects/${projectId}/data/sync`, {
+    method: "POST",
+    body: {
+      modified: rows.map((row) => {
+        return {
+          id: row.id,
+          geom: row.data.geom,
+          data: row.data.data,
+        }
+      }),
+      deletedKeys: [],
+      projectVersionId: project.versionId,
+    } satisfies SyncProjectDataPayload,
+  })
+
+  const syncAt = Date.now()
+  await useDb().projectData.where("id").anyOf(modifiedDataId).modify({ syncAt })
+  await useDb().changesHistory.where("id").anyOf(modifiedRowId).delete()
+}
+
+/**
+ * sync deleted project data id
+ * @param projectId
+ */
+async function syncProjectDataDeleted(projectId: string) {
+  const project = await useProjectStore().getById(projectId)
+  if (project?.versionId == null) {
+    throw new Error("need to sync")
+  }
+
+  const rows = await useDb().changesHistory.filter((row) => row.projectId === projectId && row.changeType === TableChangeType.Delete).toArray()
+
+  await useMainServiceFetch(`/projects/${projectId}/data/sync`, {
+    method: "POST",
+    body: {
+      modified: [],
+      deletedKeys: rows.map((row) => row.dataId),
+      projectVersionId: project.versionId,
+    } satisfies SyncProjectDataPayload,
+  })
+
+  await useDb().changesHistory.where("id").anyOf(rows.map((row) => row.id)).delete()
+}
+
 async function join(projectId: string) {
   await useMainServiceFetch(`/projects/${projectId}/join`, {
     method: "POST",
@@ -261,5 +343,8 @@ export const ProjectService = {
 
 export const ProjectDataService = {
   sync: syncProjectData,
+  syncProjectDataDeleted,
+  syncProjectDataUpdate,
   submitAllImage,
+  countImageNeedSync,
 }
