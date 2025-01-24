@@ -81,13 +81,22 @@ async function joinSurvey() {
 onMounted(async () => {
   const projectParamId = get(route.params as Record<string, string>, "id")
 
-  if (projectParamId == null) {
+  if (projectParamId == null || projectParamId === "undefined") {
+    const summary = `Project ${projectParamId} not found`
+    toast.add({
+      severity: "error",
+      summary,
+      closable: true,
+      life: 3500,
+      group: "bc",
+    })
+    await navigateTo(`/404?errorMessage=${summary}`)
     return
   }
 
   const existing = await useProjectStore().getById(projectParamId)
 
-  if (existing != null) {
+  if (existing != null && existing.id != null) {
     toast.add({
       severity: "info",
       summary: "Already join, moving to survey page",
