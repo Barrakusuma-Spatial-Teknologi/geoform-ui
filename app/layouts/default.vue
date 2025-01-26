@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useAuth } from "~/composables/auth"
 import { LayoutTitleKey } from "~/composables/layout"
+import { appVersion } from "../../constants/version"
 
 const route = useRoute()
 const definedTitle = ref<string>()
@@ -55,6 +56,10 @@ async function logout() {
         >
           <i class="i-[solar--logout-2-bold] text-2xl" /> Logout
         </Button>
+
+        <div class="w-full text-center text-xs text-surface-500">
+          v{{ appVersion }}
+        </div>
       </div>
     </Drawer>
 
