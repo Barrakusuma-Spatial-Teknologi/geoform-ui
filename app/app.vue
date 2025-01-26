@@ -13,6 +13,8 @@ const blocker = useUiBlocker()
   <NuxtPwaManifest />
   <Toast position="top-center" />
   <Toast position="bottom-center" group="bc" />
+  <ConfirmDialog />
+
   <TransitionFade>
     <div v-if="blocker.state">
       <div class="absolute left-0 top-1/2 z-[9999999999] flex w-full flex-col items-center justify-center">

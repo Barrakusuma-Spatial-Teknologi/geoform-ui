@@ -16,6 +16,8 @@ const emits = defineEmits<{
   deleteProject: []
 }>()
 
+const confirm = useConfirm()
+
 const selectedProjectIsCollab = computed(() => {
   return props.project?.isCollaboration ?? false
 })
@@ -87,6 +89,52 @@ async function submitData() {
       severity: "error",
       closable: true,
     })
+    captureToSentry(e)
+  }
+  finally {
+    blocker.hide()
+  }
+}
+
+function confirmClearSubmitedData() {
+  confirm.require({
+    header: "Confirm",
+    message: "Submitted data will be deleted and can not be undone",
+    rejectProps: {
+      label: "Cancel",
+      outlined: true,
+      size: "small",
+    },
+    acceptProps: {
+      label: "Continue",
+      size: "small",
+    },
+    accept: () => {
+      clearSubmittedData()
+    },
+    reject: () => {},
+  })
+}
+
+async function clearSubmittedData() {
+  blocker.show("Checking pending changes...")
+
+  try {
+    const pendingId = (await useDb().changesHistory.filter((row) => row.projectId === props.project.id).toArray()).map((row) => row.dataId)
+
+    blocker.show("Deleting images...")
+    await useDb().image.filter((row) => row.syncAt != null && !pendingId.includes(row.projectDataId)).delete()
+
+    blocker.show("Deleting data...")
+    await useDb().projectData.filter((row) => row.syncAt != null && !pendingId.includes(row.id)).delete()
+    toast.add({
+      summary: "Submitted data cleared",
+      severity: "success",
+      closable: true,
+      life: 6000,
+    })
+  }
+  catch (e) {
     captureToSentry(e)
   }
   finally {
@@ -189,6 +237,17 @@ const manageAccessVisible = ref(false)
         <div class="i-[solar--plain-bold]" />
         <div>
           Submit data
+        </div>
+      </li>
+      <li
+        @click="() => {
+          console.log('confirm')
+          confirmClearSubmitedData()
+        }"
+      >
+        <div class="i-[solar--clipboard-remove-bold]" />
+        <div>
+          Clear submitted data
         </div>
       </li>
       <li v-if="selectedProjectIsCollab" @click="() => { syncProjectCollaboration() }">
