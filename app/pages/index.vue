@@ -103,7 +103,7 @@ async function exportGeoJSON() {
 </script>
 
 <template>
-  <div class="relative flex size-full flex-col pt-8">
+  <div class="relative flex size-full flex-col pt-4 md:pt-8">
     <Dialog v-model:visible="shareProjectVisible" modal header="Save to cloud" :style="{ width: '25rem' }">
       <ShareProjectDialog
         v-if="selectedProjectId != null" :project-id="selectedProjectId"
@@ -132,6 +132,8 @@ async function exportGeoJSON() {
         @delete-project="deleteProject"
       />
     </Drawer>
+
+    <ProjectStorage class="mb-6 grow-0 px-6" />
 
     <div class="box-border grow basis-0 overflow-y-auto px-6 pb-6">
       <ul v-if="(projects?.length ?? -1) > 0" class="space-y-4">
