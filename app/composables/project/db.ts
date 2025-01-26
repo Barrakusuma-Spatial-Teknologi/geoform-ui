@@ -56,6 +56,11 @@ export function useDb() {
   return db
 }
 
+export async function isStoragePersisted() {
+  return await navigator.storage && navigator.storage.persisted
+    && navigator.storage.persisted()
+}
+
 export function migrateDatabase() {
   const db = useDb()
 
