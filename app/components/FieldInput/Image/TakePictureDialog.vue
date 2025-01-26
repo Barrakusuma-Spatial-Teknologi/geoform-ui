@@ -107,20 +107,24 @@ function drawRotated(source: HTMLVideoElement, canvas: HTMLCanvasElement, contex
 }
 
 function captureCamera() {
-  videoRef.value?.pause()
-  // const canvasEl = document.createElement("canvas")
+  if (canvasRef.value == null) {
+    toast.add({
+      detail: "Failed to capture image, try again ",
+      life: 3000,
+    })
+    return
+  }
 
-  const ctx = canvasRef.value!.getContext("2d")
+  videoRef.value?.pause()
+
+  const ctx = canvasRef.value.getContext("2d")
   if (ctx == null) {
     return
   }
 
   canvasRef.value!.width = videoRef.value!.videoWidth
   canvasRef.value!.height = videoRef.value!.videoHeight
-  // ctx.drawImage(videoRef.value!, 0, 0, canvasRef.value!.width, canvasRef.value!.height)
-  // ctx.drawImage(videoRef.value!, 0, 0, videoRef.value!.videoWidth, videoRef.value!.videoHeight)
   drawRotated(videoRef.value!, canvasRef.value!, ctx, orientationAngle.value)
-  // drawRotated(videoRef.value!, canvasEl, ctx, orientationAngle.value)
 
   const capturedImage = canvasRef.value!.toDataURL("image/jpeg", 0.7)
   ctx.clearRect(0, 0, canvasRef.value!.width, canvasRef.value!.height)
