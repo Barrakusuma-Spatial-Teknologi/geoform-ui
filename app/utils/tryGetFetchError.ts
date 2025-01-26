@@ -1,3 +1,4 @@
+import type { FetchError } from "ofetch"
 import { get } from "es-toolkit/compat"
 
 export function tryGetFetchError(err: FetchError): {

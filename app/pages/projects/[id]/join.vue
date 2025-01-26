@@ -1,6 +1,9 @@
 <script setup lang="ts">
+import type { FetchError } from "ofetch"
 import * as Sentry from "@sentry/nuxt"
 import { get } from "es-toolkit/compat"
+import { tryit } from "radash"
+import { BackendError } from "~~/constants/error-message"
 import LoginForm from "~/components/common/LoginForm.vue"
 import { useAuth } from "~/composables/auth"
 import { useDb } from "~/composables/project/db"
@@ -30,7 +33,21 @@ async function joinSurvey() {
 
   uiBlocker.show("Joining...")
   try {
-    await ProjectService.join(projectId.value!)
+    const [err, _] = await tryit(ProjectService.join)(projectId.value!)
+    if (err != null) {
+      const errHttp = tryGetFetchError(err)
+      if (errHttp.message === BackendError.ParticipantAlreadyExists) {
+        toast.add({
+          severity: "info",
+          summary: "Already join, resaving project...",
+          life: 3500,
+          group: "bc",
+        })
+      }
+      else {
+        throw err
+      }
+    }
 
     uiBlocker.show("Saving project config...")
     const projectRes = await ProjectService.getById(projectId.value!)
@@ -78,8 +95,10 @@ async function joinSurvey() {
   }
 }
 
+const blocker = useUiBlocker()
 onMounted(async () => {
   const projectParamId = get(route.params as Record<string, string>, "id")
+  blocker.show("Checking project status...")
 
   if (projectParamId == null || projectParamId === "undefined") {
     const summary = `Project ${projectParamId} not found`
@@ -90,6 +109,7 @@ onMounted(async () => {
       life: 3500,
       group: "bc",
     })
+    blocker.hide()
     await navigateTo(`/404?errorMessage=${summary}`)
     return
   }
@@ -99,10 +119,11 @@ onMounted(async () => {
   if (existing != null && existing.id != null) {
     toast.add({
       severity: "info",
-      summary: "Already join, moving to survey page",
+      summary: "Already in local, moving to survey page",
       life: 3500,
       group: "bc",
     })
+    blocker.hide()
     await navigateTo(`/projects/${projectParamId}/survey`)
     return
   }
@@ -113,12 +134,15 @@ onMounted(async () => {
     project.value = res.data
   }
   catch (e) {
-    const error = tryGetFetchError(e)
+    const error = tryGetFetchError(e as FetchError<any>)
     if (error != null) {
       if (error.code === 404) {
         await navigateTo("/404")
       }
     }
+  }
+  finally {
+    blocker.hide()
   }
 })
 </script>
@@ -142,7 +166,7 @@ onMounted(async () => {
     </div>
 
     <div>
-      <Button fluid @click="joinSurvey">
+      <Button fluid :disabled="projectId == null" @click="joinSurvey">
         Join Survey
       </Button>
     </div>
