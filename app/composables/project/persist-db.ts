@@ -43,7 +43,6 @@ export async function showEstimatedQuota() {
       or if it was already persisted.
  */
 export async function tryPersistWithoutPromptingUser() {
-  console.log(navigator?.permissions, navigator?.permissions?.query)
   if (!navigator.storage || !navigator.storage.persisted) {
     return "never"
   }
