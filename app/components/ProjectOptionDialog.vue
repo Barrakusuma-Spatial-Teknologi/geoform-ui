@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import type { Project } from "~/composables/project/model/project"
-import { TableChangeType, useDb } from "~/composables/project/db"
+import { submitDataCloud } from "~/components/SurveyData/submitDataCloud"
+import { useDb } from "~/composables/project/db"
 import { useUiBlocker } from "~/composables/ui/blocker"
-import { ProjectDataService, ProjectService } from "~/service/api/project"
+import { ProjectService } from "~/service/api/project"
 import { captureToSentry } from "~/utils/captureToSentry"
 
 const props = defineProps<{
@@ -30,70 +31,8 @@ const toast = useToast()
 
 const blocker = useUiBlocker()
 
-const chunkedCount = 3
-
 async function submitData() {
-  blocker.show("Submitting image")
-
-  try {
-    const imageCount = await ProjectDataService.countImageNeedSync(props.project.id)
-    if (imageCount > 0) {
-      const chunkTotal = Math.ceil(imageCount / chunkedCount)
-      for (let currentChunk = 1; currentChunk <= chunkTotal; currentChunk++) {
-        await ProjectDataService.submitAllImage(props.project.id, chunkedCount)
-        blocker.setProgress((currentChunk / chunkTotal) * 100)
-      }
-      blocker.show("Finished submitting images...")
-    }
-  }
-  catch (e) {
-    blocker.hide()
-    toast.add({
-      summary: "Failed to submit image",
-      severity: "error",
-      closable: true,
-    })
-    captureToSentry(e)
-    return
-  }
-
-  blocker.show("Submitting data")
-  try {
-    blocker.setProgress(0)
-    await ProjectDataService.syncProjectDataDeleted(props.project.id)
-    blocker.setProgress(30)
-
-    const rowsCount = await useDb()
-      .changesHistory
-      .filter((row) => row.projectId === props.project.id && row.changeType !== TableChangeType.Delete)
-      .count()
-
-    if (rowsCount > 0) {
-      const chunkTotal = Math.ceil(rowsCount / chunkedCount)
-      for (let currentChunk = 1; currentChunk <= chunkTotal; currentChunk++) {
-        await ProjectDataService.syncProjectDataUpdate(props.project.id, chunkedCount)
-        blocker.setProgress(30 + ((currentChunk / chunkTotal) * 70))
-      }
-    }
-
-    toast.add({
-      summary: "Data submitted successfully!",
-      severity: "success",
-      closable: true,
-      life: 6000,
-    })
-  }
-  catch (e) {
-    toast.add({
-      summary: "Failed to submit data",
-      severity: "error",
-      closable: true,
-    })
-    captureToSentry(e)
-  }
-  finally {
-    blocker.hide()
-  }
+  await submitDataCloud(props.project.id, toast)
 }
 
 function confirmClearSubmitedData() {

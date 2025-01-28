@@ -4,6 +4,7 @@ import { zodResolver } from "@primevue/forms/resolvers/zod"
 import { get } from "es-toolkit/compat"
 import { z } from "zod"
 import { useAuth } from "~/composables/auth"
+import { useDb } from "~/composables/project/db"
 
 const emits = defineEmits<{
   success: []
@@ -33,6 +34,7 @@ async function onSubmit(e: FormSubmitEvent) {
 
   try {
     await auth.login(e.states.username!.value, e.states.password!.value)
+    await useDb().fileHandler.toCollection().delete()
 
     toast.add({
       severity: "success",

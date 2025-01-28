@@ -14,7 +14,7 @@ export enum TableChangeType {
   Delete = "delete",
 }
 
-function getChangeType(req: DBCoreMutateRequest): TableChangeType | undefined {
+function _getChangeType(req: DBCoreMutateRequest): TableChangeType | undefined {
   if (req.type === "add") {
     return TableChangeType.Insert
   }
@@ -44,6 +44,7 @@ type DatabaseInstance = Dexie & {
   project: EntityTable<Project, "id">
   image: EntityTable<ProjectDataImage, "id">
   changesHistory: EntityTable<TableChange, "id">
+  fileHandler: EntityTable<FileSystemFileHandle>
 }
 
 let db!: DatabaseInstance
@@ -74,6 +75,10 @@ export function migrateDatabase() {
 
   db.version(2).stores({
     image: "id, projectId, projectDataId, image, createdAt, updatedAt, syncAt",
+  })
+
+  db.version(3).stores({
+    fileHandler: "++",
   })
 }
 

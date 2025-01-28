@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useToast } from "primevue"
 import { useAppConfig } from "~/composables/ui/app-config"
+import { useUiBlocker } from "~/composables/ui/blocker"
 import { useOrientation } from "~/composables/ui/device-orientation"
 
 const emits = defineEmits<{
@@ -52,15 +53,19 @@ async function selectCamera(cameraId: string) {
   appConfig.setCamera(cameraId)
 }
 
-watch(selectedCamera, async () => {
-  if (selectedCamera.value == null) {
-    return
+const blocker = useUiBlocker()
+async function setCamera(cameraId: string) {
+  blocker.show("Setting up camera...")
+  try {
+    videoRef.value?.pause()
+  }
+  catch (e) {
+    console.error("failed to pause camera")
+    console.error(e)
   }
 
-  // selectedCamera.value = cameraOptions.value.find((c) => c.value )
-  videoRef.value?.pause()
   try {
-    await selectCamera(selectedCamera.value as string)
+    await selectCamera(cameraId)
   }
   catch {
     toast.add({
@@ -69,11 +74,21 @@ watch(selectedCamera, async () => {
       life: 3000,
     })
     selectedCamera.value = cameraOptions.value[0]!.value
-    await selectCamera(selectedCamera.value as string)
+    await setCamera(selectedCamera.value)
+    await selectCamera(cameraId)
   }
   finally {
     videoRef.value?.play()
+    blocker.hide()
   }
+}
+
+watch(selectedCamera, async () => {
+  if (selectedCamera.value == null) {
+    return
+  }
+
+  await setCamera(selectedCamera.value)
 })
 
 function drawRotated(source: HTMLVideoElement, canvas: HTMLCanvasElement, context: CanvasRenderingContext2D, degrees: number) {
@@ -159,7 +174,11 @@ onMounted(async () => {
     <div class="box-border w-full grow-0 px-4">
       <label for="camera">Camera</label>
       <Select
-        id="camera" v-model="selectedCamera" :options="cameraOptions" option-label="label" option-value="value"
+        id="camera"
+        v-model="selectedCamera"
+        :options="cameraOptions"
+        option-label="label"
+        option-value="value"
         fluid
       />
     </div>

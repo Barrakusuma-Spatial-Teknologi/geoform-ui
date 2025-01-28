@@ -117,14 +117,26 @@ onMounted(async () => {
   const existing = await useProjectStore().getById(projectParamId)
 
   if (existing != null && existing.id != null) {
-    toast.add({
-      severity: "info",
-      summary: "Already in local, moving to survey page",
-      life: 3500,
-      group: "bc",
-    })
     blocker.hide()
-    await navigateTo(`/projects/${projectParamId}/survey`)
+    if (useAuth().isValid) {
+      toast.add({
+        severity: "info",
+        summary: "Already in local, moving to survey page",
+        life: 3500,
+        group: "bc",
+      })
+      await navigateTo(`/projects/${projectParamId}/survey`)
+    }
+    else {
+      toast.add({
+        severity: "info",
+        summary: "Session expired, please login again",
+        life: 3500,
+        group: "bc",
+      })
+      await navigateTo("/login")
+    }
+
     return
   }
 

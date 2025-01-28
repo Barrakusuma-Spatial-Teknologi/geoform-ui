@@ -17,6 +17,9 @@
     "migrate:up": "tsx ./migrate.ts up",
     "preview": "PORT=3030 nuxi preview"
   },
+  "dependencies": {
+    "@sentry/nuxt": "^8.51.0"
+  },
   "devDependencies": {
     "@antfu/eslint-config": "^3.12.1",
     "@commitlint/cli": "^19.6.1",
@@ -53,11 +56,13 @@
     "@vueuse/nuxt": "^12.3.0",
     "@vueuse/rxjs": "^12.3.0",
     "argon2": "^0.41.1",
+    "browser-fs-access": "^0.35.0",
     "consola": "^3.3.3",
     "date-fns": "^4.1.0",
     "date-fns-tz": "^3.2.0",
     "dayjs": "^1.11.13",
     "dexie": "^4.0.10",
+    "dexie-export-import": "^4.1.4",
     "drizzle-kit": "^0.30.1",
     "drizzle-orm": "^0.38.3",
     "drizzle-typebox": "^0.2.1",
@@ -98,15 +103,15 @@
     "vue-tsc": "^2.2.0",
     "zod": "^3.24.1"
   },
-  "lint-staged": {
-    "*": "eslint --fix"
-  },
   "pnpm": {
     "overrides": {
       "@vercel/nft": "^0.27.4"
     }
   },
-  "dependencies": {
-    "@sentry/nuxt": "^8.51.0"
+  "lint-staged": {
+    "*": "eslint --fix",
+    "**/*.ts": [
+      "eslint --fix"
+    ]
   }
 }

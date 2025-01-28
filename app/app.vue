@@ -7,6 +7,10 @@ useHead({
 })
 
 const blocker = useUiBlocker()
+
+onBeforeUnmount(() => {
+  blocker.hide()
+})
 </script>
 
 <template>
@@ -25,7 +29,7 @@ const blocker = useUiBlocker()
           </KeepAlive>
         </TransitionFade>
 
-        <div class="mt-4">
+        <div class="mt-4 rounded-lg bg-surface-100 px-4 py-1 dark:bg-surface-800">
           {{ blocker.message }}
         </div>
       </div>

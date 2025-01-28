@@ -87,7 +87,7 @@ watch(props.fields, () => {
 
 const toast = useToast()
 
-function isUuid(input: string): boolean {
+function _isUuid(input: string): boolean {
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
   return uuidRegex.test(input)
@@ -112,37 +112,40 @@ async function save(e: FormSubmitEvent) {
     data: {},
   }
 
-  // const errors: {
-  //   name: string
-  //   error: string[]
-  // }[] = []
-  const projectDataId = generateId()
-  for (const row of props.fields) {
-    // const rowValue = match(row.value)
-    //   .returnType<undefined | string | number | boolean | Date | string[]>()
-    //   .with(P.array(), () => e.values[row.key] as string[])
-    //   .with(P.string, () => e.values[row.key])
-    //   .with(P.number, () => e.values[row.key])
-    //   .otherwise((obj) => e.values[row.key]!)
+  try {
+    const projectDataId = generateId()
+    for (const row of props.fields) {
+      const rowValue = e.values[row.key] as undefined | string | number | boolean | Date | string[]
 
-    const rowValue = e.values[row.key] as undefined | string | number | boolean | Date | string[]
+      if (row.type === FieldType.IMAGE && rowValue != null) {
+        feature.data[row.key] = await projectData.upsertImage(e.values[row.key]!, projectDataId, get(row, "meta.key"))
+        continue
+      }
 
-    if (row.type === FieldType.IMAGE && rowValue != null) {
-      feature.data[row.key] = await projectData.upsertImage(e.values[row.key]!, projectDataId, get(row, "meta.key"))
-      continue
+      feature.data[row.key] = rowValue
     }
 
-    feature.data[row.key] = rowValue
-  }
+    if (props.projectDataId == null) {
+      await projectData.add(feature)
+    }
+    else {
+      await projectData.update(props.projectDataId, feature)
+    }
 
-  if (props.projectDataId == null) {
-    await projectData.add(feature)
+    emits("save", feature)
   }
-  else {
-    await projectData.update(props.projectDataId, feature)
+  catch (e) {
+    if (e?.message === "QuotaExceededError ") {
+      toast.add({
+        severity: "error",
+        summary: "Storage full",
+        detail: "Please delete some data",
+        group: "bc",
+      })
+      return
+    }
+    console.error(e)
   }
-
-  emits("save", feature)
 }
 
 function convertDDToDMS(decimalDegrees: number): string {

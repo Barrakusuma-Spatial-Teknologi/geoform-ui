@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useAuth } from "~/composables/auth"
 import { LayoutTitleKey } from "~/composables/layout"
+import { useDb } from "~/composables/project/db"
 import { appVersion } from "../../constants/version"
 
 const route = useRoute()
@@ -32,6 +33,7 @@ const configVisible = ref(false)
 const auth = useAuth()
 async function logout() {
   await useAuth().logout()
+  await useDb().fileHandler.toCollection().delete()
   await navigateTo("/login")
 }
 </script>
@@ -47,6 +49,18 @@ async function logout() {
     >
       <div class="flex flex-col space-y-6 ">
         <CommonThemeButton show-label />
+
+        <Button
+          v-if="auth.isValid"
+          severity="secondary"
+          @click="async () => {
+            navigateTo('/config')
+            configVisible = false
+          }"
+        >
+          <i class="i-[solar--settings-minimalistic-bold] text-2xl" /> Settings
+        </Button>
+
         <Button
           v-if="auth.isValid"
           severity="secondary"

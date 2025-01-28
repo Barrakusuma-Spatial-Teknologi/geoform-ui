@@ -1,19 +1,24 @@
 <script setup lang="ts">
+import type { ExportProgress } from "dexie-export-import"
 import type { Point } from "geojson"
 import type { GeoJSONSource, LayerSpecification, StyleSpecification } from "maplibre-gl"
 import type { FieldConfig } from "~/composables/project/model/project"
 import type { ProjectDataFeature } from "~/composables/project/model/project-data"
+import { UseTimeAgo } from "@vueuse/components"
 import { orderBy } from "es-toolkit"
 import { get } from "es-toolkit/compat"
 import { Map as MglMap } from "maplibre-gl"
 import { match } from "ts-pattern"
+import { submitDataCloud } from "~/components/SurveyData/submitDataCloud"
 import { usePrimaryColor } from "~/composables/color"
 import { useLayoutTitle } from "~/composables/layout"
 import { onMapLoad } from "~/composables/maplibre-helper/onMapLoad"
+import { useDbTimeMachine } from "~/composables/project/db-time-machine"
 import { LayerDataType, type LayerStylePolygon, type ProjectLayer } from "~/composables/project/model/project-layer"
 import { useProjectStore } from "~/composables/project/project"
 import { useProjectData } from "~/composables/project/project-data"
 import { useProjectLayer } from "~/composables/project/project-layer"
+import { useAppConfig } from "~/composables/ui/app-config"
 import { useUiBlocker } from "~/composables/ui/blocker"
 
 definePageMeta({
@@ -190,7 +195,56 @@ function convertDDToDMS(decimalDegrees: number): string {
 
 const layerManagerVisible = ref(false)
 
-onBeforeUnmount(() => {
+const uiBlocker = useUiBlocker()
+const appConfig = useAppConfig()
+const timeMachine = await useDbTimeMachine()
+
+async function triggerBackup() {
+  if (!appConfig.config.timeMachine.isContinuous) {
+    return
+  }
+
+  if (timeMachine.handler == null) {
+    return
+  }
+
+  timeMachine.backup()
+}
+
+onBeforeUnmount(async () => {
+  if (appConfig.config.timeMachine.isContinuous && timeMachine.handler.value != null) {
+    try {
+      if (appConfig.state.timeMachineIsInBackup) {
+        // eslint-disable-next-line no-console
+        console.debug("waiting backup data")
+        await until(() => appConfig.state.timeMachineIsInBackup).toBe(false)
+        uiBlocker.show("Waiting for background backup process...")
+      }
+      else {
+        uiBlocker.show("Backing up data...")
+        // eslint-disable-next-line no-console
+        console.debug("backing up data...")
+
+        await timeMachine.backup((progress: ExportProgress) => {
+          uiBlocker.setProgress((progress.completedTables / progress.totalTables) * 100)
+        })
+      }
+    }
+    catch (error) {
+      toast.add({
+        severity: "error",
+        closable: true,
+        group: "bc",
+        summary: "Failed to backup file",
+        detail: error?.message,
+        life: 3000,
+      })
+    }
+    finally {
+      uiBlocker.hide()
+    }
+  }
+
   layoutTitle.value = undefined
   if (map == null) {
     return
@@ -199,7 +253,6 @@ onBeforeUnmount(() => {
   map.remove()
 })
 
-const uiBlocker = useUiBlocker()
 onMounted(async () => {
   uiBlocker.show("Loading map...")
   watchCoord.pause()
@@ -464,6 +517,7 @@ onMounted(async () => {
                 lng: 0,
                 lat: 0,
               }
+              triggerBackup()
               closeCallback()
             }"
           />
@@ -490,6 +544,24 @@ onMounted(async () => {
 
     <main class="flex grow basis-0 flex-col">
       <div class="relative grow">
+        <div v-if="appConfig.config.timeMachine.isContinuous && timeMachine.handler.value != null" class="absolute left-0 top-0 z-10 rounded-lg p-2">
+          <Button class="" severity="secondary" size="small" @click="zoomToPosition">
+            <TransitionFade mode="out-in">
+              <KeepAlive>
+                <template v-if="appConfig.state.timeMachineIsInBackup">
+                  <ProgressSpinner class="size-4" stroke-width="8px" />
+                </template>
+                <template v-else>
+                  <i class="i-[solar--download-square-bold] text-xl text-primary" />
+                </template>
+              </KeepAlive>
+            </TransitionFade>
+
+            Backup
+            <UseTimeAgo v-if="appConfig.config.timeMachine?.lastUpdated != null" :time="appConfig.config.timeMachine?.lastUpdated" />
+          </Button>
+        </div>
+
         <div class="absolute bottom-0 right-0 z-10 rounded-lg p-2">
           <Button class="" severity="secondary" size="small" @click="zoomToPosition">
             <i class="i-[solar--target-line-duotone] text-xl" />
@@ -543,27 +615,16 @@ onMounted(async () => {
             </div>
           </KeepAlive>
         </TransitionFade>
-
-        <!--        <div -->
-        <!--          class="absolute left-0 top-0 z-[4] flex w-[250px] flex-col-reverse bg-surface-700 px-2 shadow-lg" :style="{ -->
-        <!--            transform: `translate(-50%, -100%) translate(${clickedPosition.pixel.x}px, ${clickedPosition.pixel.y}px)`, -->
-        <!--          }" -->
-        <!--        > -->
-        <!--          <div class="maplibregl-popup-tip self-center"> -->
-        <!--            &lt;!&ndash;            <i class="i-[solar&#45;&#45;alt-arrow-down-bold] text-2xl" /> &ndash;&gt; -->
-        <!--          </div> -->
-        <!--          <Button severity="secondary" size="small" fluid> -->
-        <!--            Add data here -->
-        <!--          </Button> -->
-        <!--        </div> -->
         <div id="map" class="map relative size-full" />
       </div>
       <div class="box-border flex grow-0 justify-between space-x-4 px-6 py-4">
-        <!--        <Button severity="primary" size="small" variant="text" @click="backToHome"> -->
-        <!--          Home -->
-        <!--        </Button> -->
-        <Button severity="primary" size="small" variant="text" @click="layerManagerVisible = true">
-          Layers
+        <Button
+          severity="primary" size="small" variant="text" @click="async () => {
+            await submitDataCloud(selectedProject.id, toast)
+          }"
+        >
+          <div class="i-[solar--plain-bold]" />
+          Submit
         </Button>
 
         <Button severity="primary" size="small" variant="text" @click="showDataVisible = true">

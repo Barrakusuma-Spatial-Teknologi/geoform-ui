@@ -30,9 +30,29 @@ const quotaInMb = computed(() => {
   return prettifyBytes(storage.value?.quota ?? 0)
 })
 
+const toast = useToast()
 async function setEstimatedQuota() {
   const estimated = await showEstimatedQuota()
   storage.value = estimated ?? { quota: 1, estimated: 0 }
+  if (percentage.value > 95) {
+    toast.add({
+      summary: `Need more space: free ${(100 - percentage.value).toFixed(1)}%`,
+      detail: "Please delete some data",
+      severity: "warn",
+      closable: true,
+      group: "bc",
+    })
+    return
+  }
+
+  if (percentage.value > 90) {
+    toast.add({
+      summary: "Storage almost empty",
+      detail: "Please delete some data",
+      life: 3000,
+      severity: "error",
+    })
+  }
 }
 
 onMounted(async () => {

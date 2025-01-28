@@ -11,6 +11,10 @@ import { generateId } from "~/utils/generateId"
 
 export function useProjectStore() {
   const db = useDb()
+  if (db?.project?.toCollection == null) {
+    console.error("db is empty, reloading")
+    window.location.reload()
+  }
 
   // @ts-expect-error peer deps issue
   const observable: Observable<Project[]> = liveQuery(() => db.project.toCollection().sortBy("updatedAt"))
