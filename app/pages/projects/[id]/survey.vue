@@ -546,16 +546,7 @@ onMounted(async () => {
       <div class="relative grow">
         <div v-if="appConfig.config.timeMachine.isContinuous && timeMachine.handler.value != null" class="absolute left-0 top-0 z-10 rounded-lg p-2">
           <Button class="" severity="secondary" size="small" @click="zoomToPosition">
-            <TransitionFade mode="out-in">
-              <KeepAlive>
-                <template v-if="appConfig.state.timeMachineIsInBackup">
-                  <ProgressSpinner class="size-4" stroke-width="8px" />
-                </template>
-                <template v-else>
-                  <i class="i-[solar--download-square-bold] text-xl text-primary" />
-                </template>
-              </KeepAlive>
-            </TransitionFade>
+            <i class="i-[solar--bolt-circle-bold-duotone] text-xl text-primary" :class="appConfig.state.timeMachineIsInBackup ? 'animate-spin' : ''" />
 
             Backup
             <UseTimeAgo v-if="appConfig.config.timeMachine?.lastUpdated != null" :time="appConfig.config.timeMachine?.lastUpdated" />
