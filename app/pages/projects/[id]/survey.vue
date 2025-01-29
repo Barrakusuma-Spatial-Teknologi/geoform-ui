@@ -52,10 +52,10 @@ const selectedProjectFieldValue = ref<(FieldConfig & {
 })[]>([])
 
 layoutTitle.value = selectedProject.value?.name
-selectedProjectFieldValue.value = selected!.fields.map((field) => ({
+selectedProjectFieldValue.value = selected?.fields.map((field) => ({
   ...field,
   value: undefined,
-}))
+})) ?? []
 const projectData = useProjectData(selectedProject.value!.id)
 
 // const projectDataFeatures = ref<ProjectDataFeature[]>([])
@@ -200,7 +200,7 @@ const appConfig = useAppConfig()
 const timeMachine = await useDbTimeMachine()
 
 async function triggerBackup() {
-  if (!appConfig.config.timeMachine.isContinuous) {
+  if (appConfig.config?.timeMachine?.isContinuous !== true) {
     return
   }
 
@@ -236,7 +236,7 @@ onBeforeUnmount(async () => {
         closable: true,
         group: "bc",
         summary: "Failed to backup file",
-        detail: error?.message,
+        detail: get(error, "message", "Unexpected error"),
         life: 3000,
       })
     }
@@ -254,6 +254,10 @@ onBeforeUnmount(async () => {
 })
 
 onMounted(async () => {
+  if (selected == null) {
+    window.location.reload()
+  }
+
   uiBlocker.show("Loading map...")
   watchCoord.pause()
   await requestPermissions()
