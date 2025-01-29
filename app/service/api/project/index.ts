@@ -2,7 +2,9 @@ import type { FieldConfig } from "~/composables/project/model/project"
 import type { ProjectDataFeature } from "~/composables/project/model/project-data"
 import type { ProjectLayer } from "~/composables/project/model/project-layer"
 import type { ProjectDataUpdatePayload } from "~/service/api/project/model"
+import { encode } from "@msgpack/msgpack"
 import { omit } from "es-toolkit"
+import { UUID } from "uuidv7"
 import { TableChangeType, useDb } from "~/composables/project/db"
 import { useProjectStore } from "~/composables/project/project"
 import { useProjectData } from "~/composables/project/project-data"
@@ -139,13 +141,15 @@ export interface SubmitImagePayload {
     image: string
   }[]
 }
-async function submitAllImage(projectId: string, limit?: number) {
+
+async function submitAllImage(projectId: string, limit?: number, mssgPack?: boolean) {
   let imageQuery = useDb().image.filter((o) => {
     if (o.projectId !== projectId) {
       return false
     }
 
-    return o.syncAt == null || o.syncAt < o.updatedAt
+    // return o.syncAt == null || o.syncAt < o.updatedAt
+    return true
   })
   if (limit) {
     imageQuery = imageQuery.limit(limit)
@@ -160,10 +164,43 @@ async function submitAllImage(projectId: string, limit?: number) {
       projectDataId: row.projectDataId,
     })),
   }
-  await useMainServiceFetch(`/projects/images/batch-create`, {
-    method: "POST",
-    body,
-  })
+
+  if (mssgPack) {
+    try {
+      const msgPackBody = encode({
+        projectId: UUID.parse(projectId).bytes,
+        images: rows.map((row) => ({
+          id: UUID.parse(row.id).bytes,
+          image: row.image,
+          projectDataId: UUID.parse(row.projectDataId).bytes,
+        })),
+      })
+
+      await useMainServiceFetch(`/projects/images/batch-create`, {
+        method: "POST",
+        body: msgPackBody,
+        headers: {
+          "Content-Type": "application/msgpack",
+        },
+      })
+    }
+
+    // }
+    catch (e) {
+      // eslint-disable-next-line no-console
+      console.debug(`failed to send message pack, falling back to json, ${e?.message}`)
+      await useMainServiceFetch(`/projects/images/batch-create`, {
+        method: "POST",
+        body,
+      })
+    }
+  }
+  else {
+    await useMainServiceFetch(`/projects/images/batch-create`, {
+      method: "POST",
+      body,
+    })
+  }
 
   const syncAt = Date.now()
   await useDb().image.where("id").anyOf(rows.map((row) => row.id)).modify({
@@ -178,7 +215,8 @@ async function countImageNeedSync(projectId: string) {
       return false
     }
 
-    return o.syncAt == null || o.syncAt < o.updatedAt
+    // return o.syncAt == null || o.syncAt < o.updatedAt
+    return true
   }).count()
 
   return counted
@@ -190,7 +228,41 @@ export interface SyncProjectDataPayload {
   projectVersionId: string
 }
 
-async function syncProjectData(projectId: string) {
+async function sendSyncRequest(projectId: string, payload: SyncProjectDataPayload, msgPack?: boolean) {
+  if (msgPack) {
+    try {
+      const msgPackBody = encode({
+        modified: payload.modified.map((row) => ({
+          ...row,
+          id: UUID.parse(row.id).bytes,
+        })),
+        deletedKeys: payload.deletedKeys.map((row) => UUID.parse(row).bytes),
+        projectVersionId: payload.projectVersionId,
+      })
+
+      await useMainServiceFetch(`/projects/${projectId}/data/sync`, {
+        method: "POST",
+        body: msgPackBody,
+        headers: {
+          "Content-Type": "application/msgpack",
+        },
+      })
+      return // Exit if MessagePack succeeds
+    }
+    catch (e) {
+      // eslint-disable-next-line no-console
+      console.debug(`Failed to send MessagePack, falling back to JSON: ${e?.message}`)
+    }
+  }
+
+  // Fallback to JSON if MessagePack fails or is not requested
+  await useMainServiceFetch(`/projects/${projectId}/data/sync`, {
+    method: "POST",
+    body: payload,
+  })
+}
+
+async function syncProjectData(projectId: string, msgPack?: boolean) {
   const project = await useProjectStore().getById(projectId)
   if (project?.versionId == null) {
     throw new Error("need to sync")
@@ -218,14 +290,12 @@ async function syncProjectData(projectId: string) {
     } satisfies SyncProjectDataPayload["modified"][number]
   }))).filter((row) => row != null)
 
-  await useMainServiceFetch(`/projects/${projectId}/data/sync`, {
-    method: "POST",
-    body: {
-      modified: rows,
-      deletedKeys,
-      projectVersionId: project.versionId,
-    } satisfies SyncProjectDataPayload,
-  })
+  const payload = {
+    modified: rows,
+    deletedKeys,
+    projectVersionId: project.versionId,
+  }
+  await sendSyncRequest(projectId, payload, msgPack)
 
   const syncAt = Date.now()
   await useDb().projectData.where("id").anyOf(rows.map((row) => row.id)).modify({ syncAt })
@@ -236,8 +306,9 @@ async function syncProjectData(projectId: string) {
  * sync updated or new data
  * @param projectId
  * @param limit
+ * @param msgPack
  */
-async function syncProjectDataUpdate(projectId: string, limit?: number) {
+async function syncProjectDataUpdate(projectId: string, limit?: number, msgPack?: boolean) {
   const project = await useProjectStore().getById(projectId)
   if (project?.versionId == null) {
     throw new Error("need to sync")
@@ -254,20 +325,17 @@ async function syncProjectDataUpdate(projectId: string, limit?: number) {
   const projectDataStore = useProjectData(projectId)
   const rows = await projectDataStore.getByIds(modifiedDataId)
 
-  await useMainServiceFetch(`/projects/${projectId}/data/sync`, {
-    method: "POST",
-    body: {
-      modified: rows.map((row) => {
-        return {
-          id: row.id,
-          geom: row.data.geom,
-          data: row.data.data,
-        }
-      }),
-      deletedKeys: [],
-      projectVersionId: project.versionId,
-    } satisfies SyncProjectDataPayload,
-  })
+  const payload = {
+    modified: rows.map((row) => ({
+      id: row.id,
+      geom: row.data.geom,
+      data: row.data.data,
+    })),
+    deletedKeys: [],
+    projectVersionId: project.versionId,
+  } satisfies SyncProjectDataPayload
+
+  await sendSyncRequest(projectId, payload, msgPack)
 
   const syncAt = Date.now()
   await useDb().projectData.where("id").anyOf(modifiedDataId).modify({ syncAt })
@@ -277,8 +345,9 @@ async function syncProjectDataUpdate(projectId: string, limit?: number) {
 /**
  * sync deleted project data id
  * @param projectId
+ * @param msgPack
  */
-async function syncProjectDataDeleted(projectId: string) {
+async function syncProjectDataDeleted(projectId: string, msgPack?: boolean) {
   const project = await useProjectStore().getById(projectId)
   if (project?.versionId == null) {
     throw new Error("need to sync")
@@ -286,15 +355,13 @@ async function syncProjectDataDeleted(projectId: string) {
 
   const rows = await useDb().changesHistory.filter((row) => row.projectId === projectId && row.changeType === TableChangeType.Delete).toArray()
 
-  await useMainServiceFetch(`/projects/${projectId}/data/sync`, {
-    method: "POST",
-    body: {
-      modified: [],
-      deletedKeys: rows.map((row) => row.dataId),
-      projectVersionId: project.versionId,
-    } satisfies SyncProjectDataPayload,
-  })
+  const payload = {
+    modified: [],
+    deletedKeys: rows.map((row) => row.dataId),
+    projectVersionId: project.versionId,
+  } satisfies SyncProjectDataPayload
 
+  await sendSyncRequest(projectId, payload, msgPack)
   await useDb().changesHistory.where("id").anyOf(rows.map((row) => row.id)).delete()
 }
 
@@ -312,6 +379,7 @@ export interface UserResponse {
 async function getParticipants(projectId: string) {
   return useMainServiceFetch<UserResponse[]>(`/projects/${projectId}/participants`)
 }
+
 async function removeParticipant(projectId: string, userId: string) {
   await useMainServiceFetch(`/projects/${projectId}/participant/${userId}`, {
     method: "DELETE",

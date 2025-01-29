@@ -15,7 +15,7 @@ export async function submitDataCloud(projectId: string, toast: ToastServiceMeth
     if (imageCount > 0) {
       const chunkTotal = Math.ceil(imageCount / chunkedCount)
       for (let currentChunk = 1; currentChunk <= chunkTotal; currentChunk++) {
-        await ProjectDataService.submitAllImage(projectId, chunkedCount)
+        await ProjectDataService.submitAllImage(projectId, chunkedCount, true)
         blocker.setProgress((currentChunk / chunkTotal) * 100)
       }
 
@@ -37,7 +37,7 @@ export async function submitDataCloud(projectId: string, toast: ToastServiceMeth
   blocker.show("Submitting data")
   try {
     blocker.setProgress(0)
-    await ProjectDataService.syncProjectDataDeleted(projectId)
+    await ProjectDataService.syncProjectDataDeleted(projectId, true)
     blocker.setProgress(30)
 
     const rowsCount = await useDb()
@@ -48,7 +48,7 @@ export async function submitDataCloud(projectId: string, toast: ToastServiceMeth
     if (rowsCount > 0) {
       const chunkTotal = Math.ceil(rowsCount / chunkedCount)
       for (let currentChunk = 1; currentChunk <= chunkTotal; currentChunk++) {
-        await ProjectDataService.syncProjectDataUpdate(projectId, chunkedCount)
+        await ProjectDataService.syncProjectDataUpdate(projectId, chunkedCount, true)
         blocker.setProgress(30 + ((currentChunk / chunkTotal) * 70))
       }
     }

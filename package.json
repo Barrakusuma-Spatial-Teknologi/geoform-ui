@@ -33,6 +33,7 @@
     "@libsql/client": "^0.14.0",
     "@morev/vue-transitions": "^3.0.5",
     "@morgan-stanley/message-broker": "^1.0.1",
+    "@msgpack/msgpack": "3.0.0-beta3",
     "@nuxt/eslint": "^0.7.4",
     "@nuxt/image": "^1.8.1",
     "@nuxt/kit": "^3.15.1",
