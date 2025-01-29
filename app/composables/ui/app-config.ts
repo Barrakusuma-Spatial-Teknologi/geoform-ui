@@ -7,6 +7,9 @@ export const useAppConfig = defineStore("geoformAppConfig", () => {
       lastUpdated: undefined as number | undefined,
       isContinuous: false,
     },
+    devTools: {
+      enabled: false,
+    },
   })
 
   const setCamera = (cameraId: string) => {

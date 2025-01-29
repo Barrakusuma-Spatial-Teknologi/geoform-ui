@@ -27,6 +27,7 @@ const persistStatus = usePermission({
 })
 
 const toast = useToast()
+
 function showErrorToastPersist() {
   toast.add({
     severity: "warn",
@@ -62,7 +63,9 @@ async function requestGeolocationPermission() {
     await new Promise<GeolocationPosition>((resolve, reject) => {
       window.navigator.geolocation.getCurrentPosition((data) => {
         return resolve(data)
-      }, (error) => { return reject(error) })
+      }, (error) => {
+        return reject(error)
+      })
     })
   }
   catch {
@@ -105,6 +108,7 @@ const backupFileLocation = computed(() => {
 
 const blocker = useUiBlocker()
 const { config } = storeToRefs(useAppConfig())
+const runtimeConfig = useRuntimeConfig()
 
 async function backupToFile() {
   blocker.show("Backing up file...")
@@ -169,6 +173,31 @@ async function restoreFromFile() {
   finally {
     await sleep(800)
     blocker.hide()
+  }
+}
+
+function toggleVconsole() {
+  const dom = document.querySelector(".vc-switch")
+  if (dom == null) {
+    toast.add({
+      severity: "error",
+      closable: true,
+      group: "bc",
+      summary: "vConsole instance not included in app",
+      detail: error?.message,
+      life: 3000,
+    })
+
+    return
+  }
+
+  const div = dom as HTMLDivElement
+  div.style.display = config.value?.devTools?.enabled === true ? "none" : "block"
+  if (config.value?.devTools == null) {
+    config.value.devTools = { enabled: true }
+  }
+  else {
+    config.value.devTools.enabled = !config.value.devTools.enabled
   }
 }
 </script>
@@ -240,7 +269,10 @@ async function restoreFromFile() {
                   Backup location
                 </div>
                 <div class="-ml-1 text-xs text-surface-300">
-                  <InputText class="!text-xs" :value="backupFileLocation" :default-value="backupFileLocation" size="small" readonly />
+                  <InputText
+                    class="!text-xs" :value="backupFileLocation" :default-value="backupFileLocation"
+                    size="small" readonly
+                  />
                 </div>
               </div>
 
@@ -338,7 +370,7 @@ async function restoreFromFile() {
       </div>
     </div>
 
-    <div>
+    <div class="mb-8">
       <div class="ml-4 text-sm">
         Restore
       </div>
@@ -349,6 +381,31 @@ async function restoreFromFile() {
               <Button fluid size="small" severity="secondary" variant="outlined" @click="restoreFromFile">
                 Restore from file
               </Button>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div v-if="Number.parseInt(runtimeConfig.public.includeVconsole) === 1">
+      <div class="ml-4 text-sm">
+        Devtools
+      </div>
+      <div class="box-border rounded-lg bg-surface-200/50 px-4 py-2 dark:bg-surface-800">
+        <ul class="permission-list">
+          <li>
+            <div class="">
+              <div>vConsole</div>
+              <div class="pr-2 text-xs text-surface-500 dark:text-surface-300">
+                Display vConsole log to debug console in mobile web browser
+              </div>
+            </div>
+            <div @click="toggleVconsole">
+              <Checkbox
+                :default-value="config?.devTools?.enabled ?? false" binary
+                :value="config?.devTools?.enabled ?? false"
+                readonly
+              />
             </div>
           </li>
         </ul>

@@ -80,6 +80,7 @@ export default defineNuxtConfig({
     secret: "",
     public: {
       apiUrl: "",
+      includeVconsole: "0",
     },
     sentry: {
       dsn: "",
