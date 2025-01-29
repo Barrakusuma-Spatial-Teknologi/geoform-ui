@@ -1,7 +1,6 @@
 import { useLocalStorage } from "@vueuse/core"
 import { jwtDecode } from "jwt-decode"
 import { defineStore } from "pinia"
-import { useDb } from "~/composables/project/db"
 import { AuthService } from "~/service/api/auth"
 
 export const useAuth = defineStore("authStore", () => {
@@ -24,9 +23,9 @@ export const useAuth = defineStore("authStore", () => {
 
   const login = async (username: string, password: string) => {
     jwtToken.value = await AuthService.login(username, password)
-    if (jwtClaims.value!.sub !== userId.value) {
-      await useDb().delete({ disableAutoOpen: false })
-    }
+    // if (jwtClaims.value!.sub !== userId.value) {
+    //   await useDb().delete({ disableAutoOpen: false })
+    // }
 
     userId.value = jwtClaims.value!.sub
   }
