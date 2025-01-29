@@ -544,12 +544,12 @@ onMounted(async () => {
 
     <main class="flex grow basis-0 flex-col">
       <div class="relative grow">
-        <div v-if="appConfig.config.timeMachine.isContinuous && timeMachine.handler.value != null" class="absolute left-0 top-0 z-10 rounded-lg p-2">
+        <div v-if="(appConfig.config?.timeMachine?.isContinuous ?? false) && timeMachine.handler.value != null" class="absolute left-0 top-0 z-10 rounded-lg p-2">
           <Button class="" severity="secondary" size="small" @click="zoomToPosition">
             <i class="i-[solar--bolt-circle-bold-duotone] text-xl text-primary" :class="appConfig.state.timeMachineIsInBackup ? 'animate-spin' : ''" />
 
             Backup
-            <UseTimeAgo v-if="appConfig.config.timeMachine?.lastUpdated != null" :time="appConfig.config.timeMachine?.lastUpdated" />
+            <UseTimeAgo v-if="appConfig.config?.timeMachine?.lastUpdated != null" :time="appConfig.config?.timeMachine?.lastUpdated" />
           </Button>
         </div>
 
