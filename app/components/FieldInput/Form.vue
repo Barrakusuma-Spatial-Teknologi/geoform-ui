@@ -238,7 +238,7 @@ onDeactivated(() => {
               <label class="text-sm" :for="field.key">
                 {{ field.name }}
               </label>
-              <DatePicker :id="field.key" :name="field.key" fluid />
+              <DatePicker :id="field.key" :name="field.key" fluid date-format="dd/mm/yy" />
 
               <Message v-if="$form[field.key]?.invalid" severity="error" size="small" variant="simple">
                 {{ $form[field.key]?.error?.message }}
