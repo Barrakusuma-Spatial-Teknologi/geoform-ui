@@ -114,7 +114,19 @@ onMounted(async () => {
     return
   }
 
-  const existing = await useProjectStore().getById(projectParamId)
+  const projectStore = useProjectStore()
+  const [err, existing] = await tryit(projectStore.getById)(projectParamId)
+  if (err != null) {
+    toast.add({
+      severity: "error",
+      summary: "Database not initialized, please refresh page",
+      life: 3500,
+      group: "bc",
+    })
+    captureToSentry(err)
+    return
+  }
+  // await useProjectStore().getById(projectParamId)
 
   if (existing != null && existing.id != null) {
     blocker.hide()
