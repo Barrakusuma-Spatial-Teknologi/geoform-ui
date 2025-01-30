@@ -387,7 +387,7 @@ function toggleVconsole() {
       </div>
     </div>
 
-    <div v-if="Number.parseInt(runtimeConfig.public.includeVconsole) === 1">
+    <div v-if="Number.parseInt(runtimeConfig.public?.includeVconsole ?? '0') === 1">
       <div class="ml-4 text-sm">
         Devtools
       </div>
