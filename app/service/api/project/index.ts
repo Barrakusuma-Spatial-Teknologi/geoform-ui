@@ -155,6 +155,9 @@ async function submitAllImage(projectId: string, limit?: number, mssgPack?: bool
     imageQuery = imageQuery.limit(limit)
   }
   const rows = await imageQuery.toArray()
+  if (rows.length === 0) {
+    return
+  }
 
   const body: SubmitImagePayload = {
     projectId,
@@ -203,9 +206,24 @@ async function submitAllImage(projectId: string, limit?: number, mssgPack?: bool
   }
 
   const syncAt = Date.now()
-  await useDb().image.where("id").anyOf(rows.map((row) => row.id)).modify({
-    syncAt,
-    createdAt: syncAt,
+  const rowId = rows.map((row) => row.id)
+
+  const db = useDb()
+  await db.transaction("rw", db.image, async (tx) => {
+    for (const row of rowId) {
+      try {
+        await tx.image.where("id").equals(row).modify({
+          syncAt,
+          createdAt: syncAt,
+        })
+      }
+      catch (e) {
+      // eslint-disable-next-line no-console
+        console.debug("ignoring error, because image uploaded")
+        console.error(e)
+        captureToSentry(e)
+      }
+    }
   })
 }
 
@@ -298,8 +316,15 @@ async function syncProjectData(projectId: string, msgPack?: boolean) {
   await sendSyncRequest(projectId, payload, msgPack)
 
   const syncAt = Date.now()
-  await useDb().projectData.where("id").anyOf(rows.map((row) => row.id)).modify({ syncAt })
-  await useDb().changesHistory.where("projectId").equals(projectId).delete()
+
+  const db = useDb()
+  await db.transaction("rw", db.projectData, async (tx) => {
+    await tx.projectData.where("id").anyOf(rows.map((row) => row.id)).modify({ syncAt })
+  })
+
+  await db.transaction("rw", db.changesHistory, async (tx) => {
+    await tx.changesHistory.where("projectId").equals(projectId).delete()
+  })
 }
 
 /**
@@ -319,6 +344,10 @@ async function syncProjectDataUpdate(projectId: string, limit?: number, msgPack?
     tableChangeQuery = tableChangeQuery.limit(limit)
   }
   const modified = await tableChangeQuery.toArray()
+  if (modified.length === 0) {
+    return
+  }
+
   const modifiedDataId = modified.map((row) => row.dataId)
   const modifiedRowId = modified.map((row) => row.id)
 
@@ -338,8 +367,15 @@ async function syncProjectDataUpdate(projectId: string, limit?: number, msgPack?
   await sendSyncRequest(projectId, payload, msgPack)
 
   const syncAt = Date.now()
-  await useDb().projectData.where("id").anyOf(modifiedDataId).modify({ syncAt })
-  await useDb().changesHistory.where("id").anyOf(modifiedRowId).delete()
+
+  const db = useDb()
+  await db.transaction("rw", db.projectData, async (tx) => {
+    await tx.projectData.where("id").anyOf(modifiedDataId).modify({ syncAt })
+  })
+
+  await db.transaction("rw", db.changesHistory, async (tx) => {
+    await tx.changesHistory.where("id").anyOf(modifiedRowId).delete()
+  })
 }
 
 /**
@@ -354,6 +390,9 @@ async function syncProjectDataDeleted(projectId: string, msgPack?: boolean) {
   }
 
   const rows = await useDb().changesHistory.filter((row) => row.projectId === projectId && row.changeType === TableChangeType.Delete).toArray()
+  if (rows.length === 0) {
+    return
+  }
 
   const payload = {
     modified: [],
@@ -362,7 +401,11 @@ async function syncProjectDataDeleted(projectId: string, msgPack?: boolean) {
   } satisfies SyncProjectDataPayload
 
   await sendSyncRequest(projectId, payload, msgPack)
-  await useDb().changesHistory.where("id").anyOf(rows.map((row) => row.id)).delete()
+
+  const db = useDb()
+  await db.transaction("rw", db.changesHistory, async (tx) => {
+    await tx.changesHistory.where("id").anyOf(rows.map((row) => row.id)).delete()
+  })
 }
 
 async function join(projectId: string) {
