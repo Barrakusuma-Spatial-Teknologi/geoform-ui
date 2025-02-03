@@ -14,7 +14,7 @@ export function onMapLoad(map: Mapl): Promise<MapLibreEvent | null> {
       }
 
       reject(new Error("failed to load map, exceeded timeout"))
-    }, 5000)
+    }, 10000)
 
     map.on("load", (e) => {
       if (e == null) {
