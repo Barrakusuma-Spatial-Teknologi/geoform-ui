@@ -2,7 +2,7 @@ import type { ToastServiceMethods } from "primevue"
 import { TableChangeType, useDb } from "~/composables/project/db"
 import { useUiBlocker } from "~/composables/ui/blocker"
 import { ProjectDataService } from "~/service/api/project"
-import { captureToSentry } from "~/utils/captureToSentry"
+import { captureToCloud } from "~/utils/captureToCloud"
 
 const chunkedCount = 3
 export async function submitDataCloud(projectId: string, toast: ToastServiceMethods) {
@@ -30,7 +30,7 @@ export async function submitDataCloud(projectId: string, toast: ToastServiceMeth
       severity: "error",
       closable: true,
     })
-    captureToSentry(e)
+    captureToCloud(e)
     return
   }
 
@@ -68,7 +68,7 @@ export async function submitDataCloud(projectId: string, toast: ToastServiceMeth
       severity: "error",
       closable: true,
     })
-    captureToSentry(e)
+    captureToCloud(e)
   }
   finally {
     blocker.hide()

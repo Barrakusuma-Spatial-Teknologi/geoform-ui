@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { ProjectDataFeature } from "~/composables/project/model/project-data"
 import { type FieldConfig, FieldType } from "~/composables/project/model/project"
 import { remapFieldValue, useProjectStore } from "~/composables/project/project"
 import { useProjectData } from "~/composables/project/project-data"
@@ -14,8 +13,8 @@ const emits = defineEmits<{
 
 const isLoadingData = ref(false)
 const fields = ref<FieldConfig[]>([])
-const data = ref<ProjectDataFeature[]>([])
-const { projects, getById } = useProjectStore()
+const data = ref<Record<string, unknown>[]>([])
+const { getById } = useProjectStore()
 let projectData!: Awaited<ReturnType<typeof useProjectData>>
 
 async function loadData() {
@@ -40,7 +39,7 @@ onMounted(async () => {
     await loadData()
   }
   catch (e) {
-    captureToSentry(e)
+    captureToCloud(e)
   }
   finally {
     isLoadingData.value = false

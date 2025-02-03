@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { FetchError } from "ofetch"
-import * as Sentry from "@sentry/nuxt"
 import { get } from "es-toolkit/compat"
 import { tryit } from "radash"
 import { BackendError } from "~~/constants/error-message"
@@ -88,7 +87,7 @@ async function joinSurvey() {
       life: 3000,
       group: "bc",
     })
-    Sentry.captureException(e)
+    captureToCloud(e)
   }
   finally {
     uiBlocker.hide()
@@ -123,7 +122,7 @@ onMounted(async () => {
       life: 3500,
       group: "bc",
     })
-    captureToSentry(err)
+    captureToCloud(err)
     return
   }
   // await useProjectStore().getById(projectParamId)

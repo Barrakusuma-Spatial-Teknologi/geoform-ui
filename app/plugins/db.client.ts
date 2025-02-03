@@ -10,7 +10,10 @@ export default defineNuxtPlugin((nuxtApp) => {
       }
     }
     catch (e) {
-      captureToSentry(e)
+      // eslint-disable-next-line no-console
+      console.debug(e)
+      // eslint-disable-next-line no-console
+      console.debug("unable to turn on persist")
     }
 
     migrateDatabase()

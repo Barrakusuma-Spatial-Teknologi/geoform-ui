@@ -16,7 +16,6 @@ export default defineNuxtConfig({
     "@primevue/nuxt-module",
     "@morev/vue-transitions/nuxt",
     "@vee-validate/nuxt",
-    "@sentry/nuxt/module",
   ],
 
   plugins: [],
@@ -50,7 +49,7 @@ export default defineNuxtConfig({
       meta: [
         {
           name: "viewport",
-          content: "width=device-width, initial-scale=1",
+          content: "width=device-width, height=device-height, initial-scale=1",
         },
         {
           name: "description",
@@ -81,9 +80,6 @@ export default defineNuxtConfig({
     public: {
       apiUrl: "",
       includeVconsole: "0",
-    },
-    sentry: {
-      dsn: "",
     },
   },
 
@@ -120,14 +116,7 @@ export default defineNuxtConfig({
     },
     prerender: {
       crawlLinks: false,
-      routes: ["/"],
-      ignore: ["/", "/hi"],
-    },
-  },
-
-  nitro: {
-    prerender: {
-      routes: ["/"],
+      routes: ["/", "/login"],
     },
   },
 
@@ -221,9 +210,6 @@ export default defineNuxtConfig({
   },
 
   pwa,
-
-  sentry: {},
-
   veeValidate: {
     // disable or enable auto imports
     autoImports: true,

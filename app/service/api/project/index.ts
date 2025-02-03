@@ -148,8 +148,7 @@ async function submitAllImage(projectId: string, limit?: number, mssgPack?: bool
       return false
     }
 
-    // return o.syncAt == null || o.syncAt < o.updatedAt
-    return true
+    return o.syncAt == null || o.syncAt < o.updatedAt
   })
   if (limit) {
     imageQuery = imageQuery.limit(limit)
@@ -221,7 +220,7 @@ async function submitAllImage(projectId: string, limit?: number, mssgPack?: bool
       // eslint-disable-next-line no-console
         console.debug("ignoring error, because image uploaded")
         console.error(e)
-        captureToSentry(e)
+        captureToCloud(e)
       }
     }
   })
@@ -233,8 +232,7 @@ async function countImageNeedSync(projectId: string) {
       return false
     }
 
-    // return o.syncAt == null || o.syncAt < o.updatedAt
-    return true
+    return o.syncAt == null || o.syncAt < o.updatedAt
   }).count()
 
   return counted

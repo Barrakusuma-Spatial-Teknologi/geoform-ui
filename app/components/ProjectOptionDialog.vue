@@ -4,7 +4,7 @@ import { submitDataCloud } from "~/components/SurveyData/submitDataCloud"
 import { useDb } from "~/composables/project/db"
 import { useUiBlocker } from "~/composables/ui/blocker"
 import { ProjectService } from "~/service/api/project"
-import { captureToSentry } from "~/utils/captureToSentry"
+import { captureToCloud } from "~/utils/captureToCloud"
 
 const props = defineProps<{
   project: Project
@@ -74,7 +74,7 @@ async function clearSubmittedData() {
     })
   }
   catch (e) {
-    captureToSentry(e)
+    captureToCloud(e)
   }
   finally {
     blocker.hide()
@@ -93,7 +93,7 @@ async function syncProject() {
       closable: true,
     })
     blocker.hide()
-    captureToSentry(e)
+    captureToCloud(e)
     return
   }
 
@@ -144,7 +144,7 @@ async function syncProjectCollaboration() {
       summary: "Failed to update project",
       life: 3000,
     })
-    captureToSentry(e)
+    captureToCloud(e)
   }
   finally {
     blocker.hide()
@@ -156,19 +156,35 @@ const manageAccessVisible = ref(false)
 
 <template>
   <ul class="space-y-2">
-    <li
-      v-if="!selectedProjectIsCollab"
-      @click="() => {
+    <template v-if="!selectedProjectIsCollab">
+      <li
 
-        emits('edit')
-      }"
-    >
-      <div class="i-[solar--pen-bold]" />
+        @click="() => {
 
-      <div>
-        Edit
-      </div>
-    </li>
+          emits('edit')
+        }"
+      >
+        <div class="i-[solar--pen-bold]" />
+
+        <div>
+          Edit
+        </div>
+      </li>
+
+      <li
+
+        @click="() => {
+          navigateTo(`/projects/${props.project.id}/data`)
+        }"
+      >
+        <div class="i-[solar--database-bold]" />
+
+        <div>
+          Show Data
+        </div>
+      </li>
+    </template>
+
     <template v-if="selectedProjectIsCollab || isInCloud">
       <li
         @click="submitData"
