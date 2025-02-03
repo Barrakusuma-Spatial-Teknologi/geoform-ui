@@ -15,9 +15,9 @@ onMounted(() => {
 
     <div>
       <div class="mb-3">
-        For better experience, we recommend using
+        For a better experience, we recommend using
         <br>
-        <strong> Google Chrome or Mozilla Firefox</strong>
+        <strong class="text-primary"> Google Chrome or Mozilla Firefox</strong>
       </div>
 
       <Checkbox
