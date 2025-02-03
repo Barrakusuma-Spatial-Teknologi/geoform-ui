@@ -33,9 +33,6 @@ function startProject(index: string) {
   navigateTo(`/projects/${index}/survey`)
 }
 
-const _geoLocationPerm = usePermission("geolocation")
-const _cameraPerm = usePermission("camera")
-
 const selectedProjectId = ref<string>()
 const selectedProjectIndex = ref<number>()
 
@@ -104,6 +101,8 @@ async function exportGeoJSON() {
 
 <template>
   <div class="relative flex size-full flex-col pt-4 md:pt-8">
+    <NoticeDialog />
+
     <Dialog v-model:visible="shareProjectVisible" modal header="Save to cloud" :style="{ width: '25rem' }">
       <ShareProjectDialog
         v-if="selectedProjectId != null" :project-id="selectedProjectId"
