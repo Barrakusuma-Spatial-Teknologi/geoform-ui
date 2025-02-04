@@ -1,5 +1,10 @@
 import { useRollbar } from "~/plugins/01-rollbar.client"
 
 export function captureToCloud(e: any) {
-  useRollbar().error(e)
+  try {
+    useRollbar().error(e)
+  }
+  catch (e) {
+    console.error(e)
+  }
 }

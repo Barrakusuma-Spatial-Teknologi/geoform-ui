@@ -5,7 +5,7 @@ import { appVersion } from "~~/constants/version"
 
 export const RollbarKey = Symbol("rollbar") as InjectionKey<RollbarType>
 const rollbar = new Rollbar({
-  accessToken: import.meta.env.VITE_ROLLBAR_CLIENT_TOKEN,
+  accessToken: import.meta.env?.VITE_ROLLBAR_CLIENT_TOKEN ?? "",
   captureUncaught: true,
   captureUnhandledRejections: true,
   payload: {
@@ -17,6 +17,10 @@ const rollbar = new Rollbar({
 export default defineNuxtPlugin((nuxtApp) => {
   nuxtApp.vueApp.use({
     install(app) {
+      if (import.meta.env?.VITE_ROLLBAR_CLIENT_TOKEN == null) {
+        return
+      }
+
       app.config.errorHandler = (error, vm, info) => {
         // @ts-expect-error let it be
         rollbar.error(error, {
