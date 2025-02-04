@@ -1,5 +1,4 @@
 import type { ToastServiceMethods } from "primevue"
-import { TableChangeType, useDb } from "~/composables/project/db"
 import { useUiBlocker } from "~/composables/ui/blocker"
 import { ProjectDataService } from "~/service/api/project"
 import { captureToCloud } from "~/utils/captureToCloud"
@@ -11,17 +10,20 @@ export async function submitDataCloud(projectId: string, toast: ToastServiceMeth
   blocker.show("Submitting image")
 
   try {
-    const imageCount = await ProjectDataService.countImageNeedSync(projectId)
-    if (imageCount > 0) {
-      const chunkTotal = Math.ceil(imageCount / chunkedCount)
-      for (let currentChunk = 1; currentChunk <= chunkTotal; currentChunk++) {
-        await ProjectDataService.submitAllImage(projectId, chunkedCount, true)
-        blocker.setProgress((currentChunk / chunkTotal) * 100)
-      }
-
-      blocker.setProgress(100)
-      blocker.show("Finished submitting images...")
-    }
+    await ProjectDataService.uploadImageNeedSync(projectId, 3, (num) => {
+      blocker.setProgress(num)
+    })
+    // const imageCount = await ProjectDataService.countImageNeedSync(projectId)
+    // if (imageCount > 0) {
+    //   const chunkTotal = Math.ceil(imageCount / chunkedCount)
+    //   for (let currentChunk = 1; currentChunk <= chunkTotal; currentChunk++) {
+    //     await ProjectDataService.submitAllImage(projectId, chunkedCount, true)
+    //     blocker.setProgress((currentChunk / chunkTotal) * 100)
+    //   }
+    //
+    //   blocker.setProgress(100)
+    //   blocker.show("Finished submitting images...")
+    // }
   }
   catch (e) {
     blocker.hide()
@@ -40,18 +42,30 @@ export async function submitDataCloud(projectId: string, toast: ToastServiceMeth
     await ProjectDataService.syncProjectDataDeleted(projectId, true)
     blocker.setProgress(30)
 
-    const rowsCount = await useDb()
-      .changesHistory
-      .filter((row) => row.projectId === projectId && row.changeType !== TableChangeType.Delete)
-      .count()
+    await ProjectDataService.syncProjectDataUpdate(projectId, chunkedCount, (num) => {
+      blocker.setProgress(num)
+      blocker.setProgress(30 + ((num / 100) * 70))
+    })
 
-    if (rowsCount > 0) {
-      const chunkTotal = Math.ceil(rowsCount / chunkedCount)
-      for (let currentChunk = 1; currentChunk <= chunkTotal; currentChunk++) {
-        await ProjectDataService.syncProjectDataUpdate(projectId, chunkedCount, true)
-        blocker.setProgress(30 + ((currentChunk / chunkTotal) * 70))
-      }
-    }
+    // const rowsCount = await useDb()
+    //   .changesHistory
+    //   .filter((row) => row.projectId === projectId && row.changeType !== TableChangeType.Delete)
+    //   .count()
+    //
+    // if (rowsCount > 0) {
+    //   await ProjectDataService.syncProjectDataUpdate(projectId, chunkedCount, (num) => {
+    //     blocker.setProgress(num)
+    //     blocker.setProgress(30 + ((num / 100) * 70))
+    //   })
+    //   const chunkTotal = Math.ceil(rowsCount / chunkedCount)
+    //   for (let currentChunk = 1; currentChunk <= chunkTotal; currentChunk++) {
+    //     await ProjectDataService.syncProjectDataUpdate(projectId, chunkedCount, (num) => {
+    //       blocker.setProgress(num)
+    //       blocker.setProgress(30 + ((num / 100) * 70))
+    //     })
+    //     blocker.setProgress(30 + ((currentChunk / chunkTotal) * 70))
+    //   }
+    // }
 
     blocker.setProgress(100)
 

@@ -3,7 +3,8 @@ import type { ProjectDataFeature } from "~/composables/project/model/project-dat
 import type { ProjectLayer } from "~/composables/project/model/project-layer"
 import type { ProjectDataUpdatePayload } from "~/service/api/project/model"
 import { encode } from "@msgpack/msgpack"
-import { omit } from "es-toolkit"
+import { chunk, omit } from "es-toolkit"
+import { sleep } from "radash"
 import { UUID } from "uuidv7"
 import { TableChangeType, useDb } from "~/composables/project/db"
 import { useProjectStore } from "~/composables/project/project"
@@ -208,22 +209,96 @@ async function submitAllImage(projectId: string, limit?: number, mssgPack?: bool
   const rowId = rows.map((row) => row.id)
 
   const db = useDb()
-  await db.transaction("rw", db.image, async (tx) => {
-    for (const row of rowId) {
-      try {
-        await tx.image.where("id").equals(row).modify({
+  await db.transaction("rw", db.image, async () => {
+    try {
+      await db.image
+        .where("id")
+        .anyOf(rowId)
+        .modify({
           syncAt,
           createdAt: syncAt,
         })
-      }
-      catch (e) {
+    }
+    catch (e) {
       // eslint-disable-next-line no-console
-        console.debug("ignoring error, because image uploaded")
-        console.error(e)
-        captureToCloud(e)
-      }
+      console.debug("ignoring error, because image uploaded")
+      console.error(e)
+      captureToCloud(e)
     }
   })
+}
+
+async function uploadImageNeedSync(projectId: string, chunkedCount: number = 3, progressCallback?: (progress: number) => void) {
+  const syncAt = Date.now()
+
+  const rows = await useDb().image.filter((o) => {
+    if (o.projectId !== projectId) {
+      return false
+    }
+
+    return o.syncAt == null || o.syncAt < o.updatedAt
+  }).toArray()
+
+  if (rows.length === 0) {
+    return
+  }
+
+  const totalProgress = Math.ceil(rows.length / chunkedCount)
+  if (progressCallback != null) {
+    progressCallback(0)
+  }
+
+  let currentChunk = 0
+  for (const group of chunk(rows, chunkedCount)) {
+    const msgPackBody = encode({
+      projectId: UUID.parse(projectId).bytes,
+      images: group.map((row) => ({
+        id: UUID.parse(row.id).bytes,
+        image: row.image,
+        projectDataId: UUID.parse(row.projectDataId).bytes,
+      })),
+    })
+
+    await useMainServiceFetch(`/projects/images/batch-create`, {
+      method: "POST",
+      body: msgPackBody,
+      headers: {
+        "Content-Type": "application/msgpack",
+      },
+    })
+
+    currentChunk += 1
+
+    const db = useDb()
+    await db.transaction("rw", db.image, async () => {
+      try {
+        await db.image
+          .where("id")
+          .anyOf(group.map((row) => row.id))
+          .modify({
+            syncAt,
+            createdAt: syncAt,
+          })
+      }
+      catch (e) {
+        // eslint-disable-next-line no-console
+        console.debug("ignoring error, because image uploaded")
+        console.error(e)
+      }
+    })
+
+    if (progressCallback != null) {
+      progressCallback((currentChunk / totalProgress) * 100)
+    }
+  }
+
+  return rows
+}
+
+export interface SyncProjectDataPayload {
+  deletedKeys: string[]
+  modified: ProjectDataUpdatePayload[]
+  projectVersionId: string
 }
 
 async function countImageNeedSync(projectId: string) {
@@ -328,19 +403,23 @@ async function syncProjectData(projectId: string, msgPack?: boolean) {
 /**
  * sync updated or new data
  * @param projectId
- * @param limit
- * @param msgPack
+ * @param chunkedCount
+ * @param progressCallback
  */
-async function syncProjectDataUpdate(projectId: string, limit?: number, msgPack?: boolean) {
+async function syncProjectDataUpdate(projectId: string, chunkedCount?: number, progressCallback?: (progress: number) => void) {
   const project = await useProjectStore().getById(projectId)
+  if (project == null) {
+    throw new Error("Project not found")
+  }
+
   if (project?.versionId == null) {
     throw new Error("need to sync")
   }
 
-  let tableChangeQuery = useDb().changesHistory.filter((row) => row.projectId === projectId && row.changeType !== TableChangeType.Delete)
-  if (limit != null) {
-    tableChangeQuery = tableChangeQuery.limit(limit)
-  }
+  const tableChangeQuery = useDb().changesHistory.filter((row) => row.projectId === projectId && row.changeType !== TableChangeType.Delete)
+  // if (chunkedCount != null) {
+  //   tableChangeQuery = tableChangeQuery.limit(chunkedCount)
+  // }
   const modified = await tableChangeQuery.toArray()
   if (modified.length === 0) {
     return
@@ -350,30 +429,61 @@ async function syncProjectDataUpdate(projectId: string, limit?: number, msgPack?
   const modifiedRowId = modified.map((row) => row.id)
 
   const projectDataStore = useProjectData(projectId)
-  const rows = await projectDataStore.getByIds(modifiedDataId)
-
-  const payload = {
-    modified: rows.map((row) => ({
-      id: row.id,
-      geom: row.data.geom,
-      data: row.data.data,
-    })),
-    deletedKeys: [],
-    projectVersionId: project.versionId,
-  } satisfies SyncProjectDataPayload
-
-  await sendSyncRequest(projectId, payload, msgPack)
+  // const rows = await projectDataStore.getByIds(modifiedDataId)
 
   const syncAt = Date.now()
+  const totalProgress = Math.ceil(modified.length / (chunkedCount ?? 3))
+  if (progressCallback != null) {
+    progressCallback(0)
+  }
 
-  const db = useDb()
-  await db.transaction("rw", db.projectData, async (tx) => {
-    await tx.projectData.where("id").anyOf(modifiedDataId).modify({ syncAt })
-  })
+  let currentChunk = 0
+  for (const changes of chunk(modified, chunkedCount ?? 3)) {
+    const rows = await projectDataStore.getByIds(changes.map((row) => row.dataId))
 
-  await db.transaction("rw", db.changesHistory, async (tx) => {
-    await tx.changesHistory.where("id").anyOf(modifiedRowId).delete()
-  })
+    const payload = {
+      modified: rows.map((row) => ({
+        id: row.id,
+        geom: row.data.geom,
+        data: row.data.data,
+      })),
+      deletedKeys: [],
+      projectVersionId: project.versionId,
+    } satisfies SyncProjectDataPayload
+
+    await sendSyncRequest(projectId, payload, true)
+
+    currentChunk += 1
+
+    const db = useDb()
+    try {
+      await db.transaction("rw", db.projectData, async (tx) => {
+        await tx.projectData.where("id").anyOf(modifiedDataId).modify({ syncAt })
+      })
+    }
+    catch (e) {
+    // eslint-disable-next-line no-console
+      console.debug("ignoring update error status because data already sent")
+      captureToCloud(e)
+    }
+
+    try {
+      await db.transaction("rw", db.changesHistory, async (tx) => {
+        await tx.changesHistory.where("id").anyOf(modifiedRowId).delete()
+      })
+    }
+    catch (e) {
+    // eslint-disable-next-line no-console
+      console.debug("ignoring update error status because data already sent")
+      captureToCloud(e)
+    }
+
+    if (progressCallback != null) {
+      progressCallback((currentChunk / totalProgress) * 100)
+    }
+
+    await sleep(200)
+  }
 }
 
 /**
@@ -400,10 +510,17 @@ async function syncProjectDataDeleted(projectId: string, msgPack?: boolean) {
 
   await sendSyncRequest(projectId, payload, msgPack)
 
-  const db = useDb()
-  await db.transaction("rw", db.changesHistory, async (tx) => {
-    await tx.changesHistory.where("id").anyOf(rows.map((row) => row.id)).delete()
-  })
+  try {
+    const db = useDb()
+    await db.transaction("rw", db.changesHistory, async (tx) => {
+      await tx.changesHistory.where("id").anyOf(rows.map((row) => row.id)).delete()
+    })
+  }
+  catch (e) {
+    // eslint-disable-next-line no-console
+    console.debug("ignoring update error status because data already sent")
+    console.error(e)
+  }
 }
 
 async function join(projectId: string) {
@@ -456,4 +573,5 @@ export const ProjectDataService = {
   syncProjectDataUpdate,
   submitAllImage,
   countImageNeedSync,
+  uploadImageNeedSync,
 }
