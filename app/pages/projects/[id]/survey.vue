@@ -204,15 +204,15 @@ async function triggerBackup() {
     return
   }
 
-  if (timeMachine.handler == null) {
+  if (timeMachine.handler.value == null) {
     return
   }
 
-  timeMachine.backup()
+  await timeMachine.backup(undefined, false)
 }
 
 onBeforeUnmount(async () => {
-  if (appConfig.config.timeMachine.isContinuous && timeMachine.handler.value != null) {
+  if (appConfig.config?.timeMachine?.isContinuous === true && timeMachine.handler.value != null) {
     try {
       if (appConfig.state.timeMachineIsInBackup) {
         // eslint-disable-next-line no-console

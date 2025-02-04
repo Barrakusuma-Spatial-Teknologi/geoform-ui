@@ -113,12 +113,13 @@ const runtimeConfig = useRuntimeConfig()
 async function backupToFile() {
   blocker.show("Backing up file...")
 
-  const progessHandler = (progress: ExportProgress) => {
+  const progressHandler = (progress: ExportProgress) => {
     blocker.setProgress((progress.completedTables / progress.totalTables) * 100)
+    return true
   }
 
   try {
-    await timeMachine.backup(progessHandler)
+    await timeMachine.backup(progressHandler, true)
     toast.add({
       severity: "success",
       closable: true,

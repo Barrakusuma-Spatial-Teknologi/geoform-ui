@@ -1,9 +1,12 @@
-import type { ExportProgress } from "dexie-export-import"
+import type { ExportOptions } from "dexie-export-import"
 import type { ImportProgress } from "dexie-export-import/dist/import"
 import { fileOpen, fileSave, supported } from "browser-fs-access"
+import { tryit } from "radash"
 import { useDb } from "~/composables/project/db"
 import { useAppConfig } from "~/composables/ui/app-config"
 import "dexie-export-import"
+
+const DEFAULT_FILENAME = "form_backup.ixdb"
 
 export async function useDbTimeMachine() {
   const db = useDb()
@@ -18,45 +21,75 @@ export async function useDbTimeMachine() {
     handler.value = newHandler
   }
 
-  const { config, state } = storeToRefs(useAppConfig())
+  const {
+    config,
+    state,
+  } = storeToRefs(useAppConfig())
 
-  const backup = async (progressCallback?: (progress: ExportProgress) => void) => {
-    try {
-      if (handler.value != null) {
-        // @ts-expect-error it is there
-        if (await handler.value.queryPermission() !== "granted") {
-          // @ts-expect-error it is there
-          await handler.value.requestPermission()
-        }
+  const tryRequestPermission = async () => {
+    if (handler.value == null) {
+      return
+    }
+
+    if (handler.value?.queryPermission != null && await handler.value.queryPermission() !== "granted") {
+      if (handler.value?.requestPermission == null) {
+        return
       }
+      await handler.value.requestPermission()
+    }
+  }
+
+  const backup = async (progressCallback: ExportOptions["progressCallback"], useFallback: boolean = false) => {
+    try {
       state.value.timeMachineIsInBackup = true
 
+      // Check and request permission if handler exists
+      await tryRequestPermission()
+
+      // Export the database
       const backupFile = await useDb().export({
         prettyJson: false,
-        progressCallback(progress) {
-          if (progressCallback != null) {
-            progressCallback(progress)
-          }
-          return true
-        },
+        progressCallback: progressCallback || (() => true),
       })
 
-      const newHandler = await fileSave(backupFile, {
-        fileName: handler.value?.name ?? "form_backup.ixdb",
+      // Handle unsupported environments
+      if (!supported) {
+        // eslint-disable-next-line no-console
+        console.debug("using fallback download")
+        download(backupFile, DEFAULT_FILENAME)
+        return
+      }
+
+      // Save the backup file
+      const [err, newHandler] = await tryit(fileSave)(backupFile, {
+        fileName: handler.value?.name ?? DEFAULT_FILENAME,
         startIn: "downloads",
         id: "geoformBackup",
         description: "Backup form",
         extensions: [".ixdb"],
       }, handler.value)
 
-      if (handler.value == null && newHandler != null) {
-        await saveHandler(newHandler)
+      if (err) {
+        if (err.name !== "AbortError" && useFallback) {
+          // eslint-disable-next-line no-console
+          console.debug("using fallback download")
+          download(backupFile, DEFAULT_FILENAME)
+        }
+        else {
+          // eslint-disable-next-line no-console
+          console.debug(err)
+        }
       }
+      else {
+        if (!handler.value && newHandler) {
+          await saveHandler(newHandler)
+        }
 
-      if (handler.value != null) {
-        config.value.timeMachine = {
-          lastUpdated: Date.now(),
-          isContinuous: true,
+        if (handler.value) {
+          config.value.timeMachine = {
+            lastUpdated: Date.now(),
+            isContinuous: true,
+          }
         }
       }
     }
@@ -114,4 +147,15 @@ export async function useDbTimeMachine() {
     saveHandler,
     toggleContinuous,
   }
+}
+
+function download(blob: Blob, fileName: string) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = fileName
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
 }
