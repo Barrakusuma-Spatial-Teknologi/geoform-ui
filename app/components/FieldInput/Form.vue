@@ -41,10 +41,13 @@ const watchField = watchPausable(fieldValues, () => {
 
 let projectData!: ReturnType<typeof useProjectData>
 
+let imageOriginalKey: Record<string, string> = {}
+
 async function resetFields() {
   const data = props.projectDataId != null ? await projectData.getById(props.projectDataId) : {}
   const init: Record<string, any> = {}
 
+  imageOriginalKey = {}
   fieldValues.value = await Promise.all(
     props.fields.map(async (field) => {
       let value = get<Record<string, undefined | string | boolean | number | Date>>(data ?? {}, `data.data.${field.key}`)
@@ -53,6 +56,8 @@ async function resetFields() {
         value = await projectData.getImage(value as string)
 
         init[field.key] = value
+        imageOriginalKey[field.key] = imageKey
+
         return {
           ...field,
           value,
@@ -113,12 +118,12 @@ async function save(e: FormSubmitEvent) {
   }
 
   try {
-    const projectDataId = generateId()
+    const projectDataId = props.projectDataId ?? generateId()
     for (const row of props.fields) {
       const rowValue = e.values[row.key] as undefined | string | number | boolean | Date | string[]
 
       if (row.type === FieldType.IMAGE && rowValue != null) {
-        feature.data[row.key] = await projectData.upsertImage(e.values[row.key]!, projectDataId, get(row, "meta.key"))
+        feature.data[row.key] = await projectData.upsertImage(e.values[row.key]!, projectDataId, get(imageOriginalKey, row.key))
         continue
       }
 
@@ -126,7 +131,7 @@ async function save(e: FormSubmitEvent) {
     }
 
     if (props.projectDataId == null) {
-      await projectData.add(feature)
+      await projectData.add(feature, projectDataId)
     }
     else {
       await projectData.update(props.projectDataId, feature)
