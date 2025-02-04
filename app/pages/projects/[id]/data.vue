@@ -166,7 +166,7 @@ onMounted(async () => {
         </template>
       </StatsCard>
 
-      <StatsCard :value="summary?.totalImageSizeMB">
+      <StatsCard :value="summary?.totalImageSizeMb">
         <template #label>
           Image Size (MB)
         </template>
