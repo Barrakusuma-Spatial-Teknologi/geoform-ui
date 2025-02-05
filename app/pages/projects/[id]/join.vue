@@ -35,7 +35,7 @@ async function joinSurvey() {
     const [err, _] = await tryit(ProjectService.join)(projectId.value!)
     if (err != null) {
       const errHttp = tryGetFetchError(err)
-      if (errHttp.message === BackendError.ParticipantAlreadyExists) {
+      if (errHttp?.message === BackendError.ParticipantAlreadyExists) {
         toast.add({
           severity: "info",
           summary: "Already join, resaving project...",
