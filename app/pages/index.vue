@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import type { FeatureCollection } from "geojson"
-
+import type { Feature, FeatureCollection } from "geojson"
 import { UseTimeAgo } from "@vueuse/components"
+import { get } from "radash"
 import ProjectOptionDialog from "~/components/ProjectOptionDialog.vue"
+import { FieldType } from "~/composables/project/model/project"
 import { useProjectStore } from "~/composables/project/project"
 import { useProjectData } from "~/composables/project/project-data"
 
@@ -78,12 +79,29 @@ async function exportGeoJSON() {
   const data = await projectData.getAll()
   const featuresCollection: FeatureCollection = {
     type: "FeatureCollection",
-    features: data.map((item) => ({
-      type: "Feature",
-      id: item.id,
-      geometry: item.data.geom,
-      properties: item.data.data,
-    })),
+    features: await Promise.all(
+      data.map(async (item) => {
+        const properties: Feature["properties"] = {}
+        for (const field of project.fields) {
+          const fieldValue = get<string | undefined>(item.data.data, field.key)
+
+          if (field.type === FieldType.IMAGE && fieldValue != null) {
+            const image = await projectData.getImage(fieldValue)
+            properties[field.key] = image ?? fieldValue
+          }
+          else {
+            properties[field.key] = fieldValue
+          }
+        }
+
+        return {
+          type: "Feature",
+          id: item.id,
+          geometry: item.data.geom,
+          properties,
+        }
+      }),
+    ),
   }
 
   const text = JSON.stringify(featuresCollection)
