@@ -39,8 +39,14 @@ async function releaseAllCamera() {
 }
 
 async function selectCamera(cameraId: string) {
-  await releaseCamera()
-  await releaseAllCamera()
+  try {
+    await releaseCamera()
+    await releaseAllCamera()
+  }
+  catch (error) {
+    console.error("failed to release, try forcing camera")
+    console.error(error)
+  }
 
   videoRef.value!.srcObject = await navigator.mediaDevices.getUserMedia({
     video: {
@@ -67,7 +73,8 @@ async function setCamera(cameraId: string) {
   try {
     await selectCamera(cameraId)
   }
-  catch {
+  catch (e) {
+    console.error(e)
     toast.add({
       detail: "Failed to use camera, reverting to the default",
       severity: "error",
