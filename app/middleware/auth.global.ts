@@ -40,39 +40,3 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return navigateTo("/login")
   }
 })
-
-// export default defineNuxtRouteMiddleware(async (to, from) => {
-//   if (import.meta.server) {
-//     return
-//   }
-//
-//   const online = useOnline()
-//   const auth = useAuth()
-//
-//   const requiresAuth = get(to.meta, "requiresAuth", true)
-//
-//   if (!auth.isValid && requiresAuth) {
-//     if (to.name === "login") {
-//       return
-//     }
-//     return navigateTo("/login")
-//   }
-//
-//   if (!online.value && auth.isValid) {
-//     if (to.name === "login") {
-//       return navigateTo("/")
-//     }
-//     return
-//   }
-//
-//   try {
-//     await auth.getUserInfo()
-//     if (to.name === "login") {
-//       return navigateTo("/")
-//     }
-//   }
-//   catch {
-//     await auth.logout()
-//     return navigateTo("/login")
-//   }
-// })
