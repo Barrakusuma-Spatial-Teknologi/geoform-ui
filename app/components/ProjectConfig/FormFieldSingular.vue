@@ -156,6 +156,19 @@ onMounted(() => {
                 <label>Max length</label>
               </IftaLabel>
             </InputGroup>
+            <InputGroup>
+              <IftaLabel>
+                <InputText
+                  fluid size="small" :default-value="field?.fieldConfig?.pattern"
+                  @value-change="(v) => {
+                    if ('fieldConfig' in field) {
+                      (field.fieldConfig as NonNullable<FieldConfigText['fieldConfig']>).pattern = v
+                    }
+                  }"
+                />
+                <label>Regular Expression</label>
+              </IftaLabel>
+            </InputGroup>
           </template>
 
           <template v-else-if="field!.type === FieldType.IMAGE">
