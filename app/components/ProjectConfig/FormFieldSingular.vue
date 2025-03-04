@@ -166,7 +166,7 @@ onMounted(() => {
                     }
                   }"
                 />
-                <label>Regular Expression</label>
+                <label>Regex Pattern</label>
               </IftaLabel>
             </InputGroup>
           </template>
