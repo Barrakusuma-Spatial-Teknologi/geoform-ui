@@ -83,6 +83,9 @@ importers:
       '@turf/bbox':
         specifier: ^7.2.0
         version: 7.2.0
+      '@turf/centroid':
+        specifier: ^7.2.0
+        version: 7.2.0
       '@types/eslint__eslintrc':
         specifier: ^2.1.2
         version: 2.1.2
@@ -2796,6 +2799,9 @@ packages:
 
   '@turf/bbox@7.2.0':
     resolution: {integrity: sha512-wzHEjCXlYZiDludDbXkpBSmv8Zu6tPGLmJ1sXQ6qDwpLE1Ew3mcWqt8AaxfTP5QwDNQa3sf2vvgTEzNbPQkCiA==}
+
+  '@turf/centroid@7.2.0':
+    resolution: {integrity: sha512-yJqDSw25T7P48au5KjvYqbDVZ7qVnipziVfZ9aSo7P2/jTE7d4BP21w0/XLi3T/9bry/t9PR1GDDDQljN4KfDw==}
 
   '@turf/helpers@7.2.0':
     resolution: {integrity: sha512-cXo7bKNZoa7aC7ydLmUR02oB3IgDe7MxiPuRz3cCtYQHn+BJ6h1tihmamYDWWUlPHgSNF0i3ATc4WmDECZafKw==}
@@ -5878,6 +5884,7 @@ packages:
 
   libsql@0.4.7:
     resolution: {integrity: sha512-T9eIRCs6b0J1SHKYIvD8+KCJMcWZ900iZyxdnSCdqxN12Z1ijzT+jY5nrk72Jw4B0HGzms2NgpryArlJqvc3Lw==}
+    cpu: [x64, arm64, wasm32]
     os: [darwin, linux, win32]
 
   lilconfig@2.1.0:
@@ -11397,6 +11404,13 @@ snapshots:
       '@turf/helpers': 7.2.0
       '@turf/meta': 7.2.0
       '@types/geojson': 7946.0.14
+      tslib: 2.8.1
+
+  '@turf/centroid@7.2.0':
+    dependencies:
+      '@turf/helpers': 7.2.0
+      '@turf/meta': 7.2.0
+      '@types/geojson': 7946.0.15
       tslib: 2.8.1
 
   '@turf/helpers@7.2.0':

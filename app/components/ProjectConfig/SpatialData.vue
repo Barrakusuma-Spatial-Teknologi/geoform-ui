@@ -15,6 +15,7 @@ import {
   type LayerStyle,
   type LayerStylePolygon,
   type LayerStyleRaster,
+  type LayerStyleSymbol,
   LayerStyleType,
 } from "~/composables/project/model/project-layer"
 
@@ -98,6 +99,7 @@ function addLayer(layerName: string, layer: LayerData, bounds?: TileJSON["bounds
 
 function addLayerGeoJSON(layerName: string, layerId: string, layer: LayerDataGeoJSON) {
   const geometryType = layer.data.features[0]!.geometry.type
+  const isSymbolLayer = geometryType === "Point" && layer.data.columnLabel !== undefined
   const baseLayer = {
     id: layerId,
     layerData: layer,
@@ -105,7 +107,7 @@ function addLayerGeoJSON(layerName: string, layerId: string, layer: LayerDataGeo
     visible: true,
   }
 
-  if (geometryType.includes("Point")) {
+  if (geometryType.includes("Point") && !isSymbolLayer) {
     addLayerWithStyle(layerId, {
       ...baseLayer,
       layerStyle: {
@@ -119,6 +121,27 @@ function addLayerGeoJSON(layerName: string, layerId: string, layer: LayerDataGeo
       paint: {
         "circle-color": "#07bb07",
         "circle-radius": 5,
+      },
+    })
+  }
+  else if (geometryType.includes("Point") && isSymbolLayer) {
+    addLayerWithStyle(layerId, {
+      ...baseLayer,
+      layerStyle: {
+        type: LayerStyleType.SYMBOL,
+        textColor: "#FFFFFF",
+      },
+    }, {
+      id: layerId,
+      type: "symbol",
+      source: layerId,
+      paint: {
+        "text-color": "#FFFFFF",
+      },
+      layout: {
+        "text-field": ["get", layer.data.columnLabel!],
+        "text-size": 12,
+        "text-font": ["Metropolis Regular"],
       },
     })
   }
@@ -169,7 +192,10 @@ function addLayerGeoJSON(layerName: string, layerId: string, layer: LayerDataGeo
 }
 
 function addLayerWithStyle(_layerId: string, layerConfig: any, ...mapLayers: LayerSpecification[]) {
-  layers.value.unshift(layerConfig)
+  const isSymbolLayer = layerConfig.layerStyle.type === "SYMBOL"
+  if (!isSymbolLayer) {
+    layers.value.unshift(layerConfig)
+  }
   mapLayers.forEach((layer) => map.addLayer(layer))
 }
 
@@ -181,7 +207,6 @@ function setLayerStyle() {
   if (selectedLayer == null) {
     return
   }
-
   const layerStyle: LayerStyle = selectedLayer.layerStyle!
 
   if (layerStyle.type === LayerStyleType.POINT) {
@@ -193,6 +218,10 @@ function setLayerStyle() {
     map.setPaintProperty(selectedLayer.id, "fill-color", stylePolygon.fillColor)
     map.setPaintProperty(`${selectedLayer.id}__line`, "line-color", stylePolygon.lineColor)
     // map.setPaintProperty(`${selectedLayer.id}__line`, "line-width", stylePolygon.lineWidth)
+  }
+  else if (layerStyle.type === LayerStyleType.SYMBOL) {
+    const styleSymbol = selectedLayer.layerStyle as LayerStyleSymbol
+    map.setPaintProperty(selectedLayer.id, "text-color", styleSymbol.textColor)
   }
   else {
     map.setPaintProperty(selectedLayer.id, "line-color", selectedLayer.layerStyle!.lineColor)
@@ -225,6 +254,17 @@ onBeforeUnmount(() => {
 
   map.remove()
 })
+
+function addLabelLayerToMap(layerName: string, layerId: string, layer: LayerDataGeoJSON) {
+  if (!map.getLayer(layerId) && !map.getSource(layerId)) {
+    map.addSource(layerId, {
+      type: "geojson",
+      data: layer.data,
+    })
+    addLayerGeoJSON(layerName, layerId, layer)
+  }
+  map.setLayoutProperty(layerId, "text-field", ["get", layer.data.columnLabel])
+}
 
 onMounted(async () => {
   map = new MglMap({
@@ -323,6 +363,7 @@ onMounted(async () => {
         v-model:layer="layers[editLayerStyleIndex]!"
         v-model:style="layers[editLayerStyleIndex]!.layerStyle"
         @change-style="setLayerStyle"
+        @label-to-map="addLabelLayerToMap"
       />
     </Drawer>
 

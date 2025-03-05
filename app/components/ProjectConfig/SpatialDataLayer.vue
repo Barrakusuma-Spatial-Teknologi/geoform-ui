@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import type { SpatialDataLayers } from "~/components/ProjectConfig/spatialDataConfig"
-import { type LayerStylePolygon, LayerStyleType } from "~/composables/project/model/project-layer"
+import { type LayerDataGeoJSON, type LayerStylePolygon, LayerStyleType } from "~/composables/project/model/project-layer"
 
 const emits = defineEmits<{
   changeStyle: []
+  labelToMap: [string, string, LayerDataGeoJSON]
 }>()
 
 const layer = defineModel<SpatialDataLayers>("layer", {
@@ -19,6 +20,10 @@ watch(style, () => {
 
 function styleChanged() {
   emits("changeStyle")
+}
+
+function labelToMap(layerName: string, layerId: string, layer: LayerDataGeoJSON) {
+  emits("labelToMap", layerName, layerId, layer)
 }
 
 const layerType = computed<LayerStyleType | undefined>(() => {
@@ -38,8 +43,10 @@ onMounted(() => {})
     <template v-if="layerType != null && layer.layerStyle != null">
       <template v-if="layerType === LayerStyleType.POLYGON">
         <ProjectConfigSpatialDataStylePolygon
+          v-model:data="layer"
           v-model:style="style as LayerStylePolygon"
           @change-style="styleChanged"
+          @label-to-map="labelToMap"
         />
       </template>
     </template>

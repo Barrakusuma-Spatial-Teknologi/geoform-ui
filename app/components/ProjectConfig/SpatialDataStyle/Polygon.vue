@@ -1,16 +1,25 @@
 <script setup lang="ts">
-import type { LayerStylePolygon } from "~/composables/project/project-layer"
+import type { SpatialDataLayers } from "../spatialDataConfig"
+import type { LayerDataGeoJSON, LayerStylePolygon } from "~/composables/project/model/project-layer"
+import { centroid } from "@turf/centroid"
 
 const emits = defineEmits<{
   changeStyle: []
+  labelToMap: [string, string, LayerDataGeoJSON]
 }>()
 
 const style = defineModel<LayerStylePolygon>("style", {
   required: true,
 })
 
+const data = defineModel<SpatialDataLayers>("data", {
+  required: true,
+})
+// eslint-disable-next-line unused-imports/no-unused-vars
 const layerName = ref<string>()
 const layerStyle = ref<Omit<LayerStylePolygon, "type">>()
+const layerData = ref<LayerDataGeoJSON>()
+const selectedColumnLabel = ref<string>()
 // const { pause, resume } = watchPausable(layerStyle, () => {
 //   layerStyle.value = {
 //     fillColor: addHashColor(toRaw(style.value.fillColor))!,
@@ -20,6 +29,7 @@ const layerStyle = ref<Omit<LayerStylePolygon, "type">>()
 //   emits("changeStyle")
 // })
 
+// eslint-disable-next-line unused-imports/no-unused-vars
 function addHashColor(color?: string): string {
   if (color == null) {
     return ""
@@ -56,12 +66,73 @@ function changeFillColor(v: any) {
   emits("changeStyle")
 }
 
+function polygonCentroid() {
+  if (!layerData.value) {
+    return
+  }
+  const point = layerData.value.data.features.map((feature) =>
+    centroid(feature, { properties: toRaw(feature.properties) }),
+  )
+  if (!point) {
+    return
+  }
+  layerData.value.data.features = point
+}
+
+function addColumnLabelToLayerData(column: string) {
+  if (data.value.layerData?.type === "GEOJSON") {
+    data.value.layerData.data.columnLabel = column
+  }
+  if (!layerData.value) {
+    return
+  }
+  layerData.value.data.columnLabel = column
+}
+
+watch(selectedColumnLabel, () => {
+  if (!selectedColumnLabel.value) {
+    return
+  }
+  if (!layerData.value) {
+    return
+  }
+  addColumnLabelToLayerData(toRaw(selectedColumnLabel.value))
+  const { id, layerName } = data.value
+  const labelLayerName = `${layerName}__symbol`
+  const lId = `${id}__symbol`
+  emits("labelToMap", labelLayerName, lId, layerData.value)
+})
+
+const columnLabelOptions = computed<{
+  value: string
+  label: string
+}[]>(() => {
+  if (!layerData.value?.data?.features?.[0]?.properties) {
+    return []
+  }
+  return Object.keys(layerData.value.data.features[0].properties).map((key) => ({
+    value: key,
+    label: key,
+  }))
+})
+
 onMounted(() => {
   layerStyle.value = {
     fillColor: removeHashColor(toRaw(style.value.fillColor))!,
     lineColor: removeHashColor(toRaw(style.value.lineColor))!,
     lineWidth: toRaw(style.value.lineWidth),
   }
+  if (data.value.layerData?.type === "GEOJSON") {
+    layerData.value = {
+      type: toRaw(data.value.layerData.type),
+      data: toRaw(data.value.layerData.data),
+    }
+
+    if (data.value.layerData.data.columnLabel) {
+      selectedColumnLabel.value = data.value.layerData.data.columnLabel
+    }
+  }
+  polygonCentroid()
 })
 </script>
 
@@ -89,6 +160,15 @@ onMounted(() => {
       </div>
     </div>
   </IftaLabel>
+  <template v-if="layerData?.type === 'GEOJSON'">
+    <IftaLabel fluid>
+      <Select
+        id="columnLabel" v-model="selectedColumnLabel" :options="columnLabelOptions" option-label="label" option-value="value"
+        fluid
+      />
+      <label for="columnLabel">Column label</label>
+    </IftaLabel>
+  </template>
   <IftaLabel fluid>
     <InputNumber v-if="layerStyle != null" v-model="layerStyle.lineWidth" fluid disabled />
     <label for="layerName">Line width</label>

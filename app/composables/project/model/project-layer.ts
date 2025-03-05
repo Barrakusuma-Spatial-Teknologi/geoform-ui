@@ -43,7 +43,7 @@ export interface LayerDataXYZVector extends LayerDataBase<LayerDataType.XYZVECTO
 }
 
 export interface LayerDataGeoJSON extends LayerDataBase<LayerDataType.GEOJSON> {
-  data: FeatureCollection
+  data: FeatureCollection & { columnLabel?: string }
 }
 
 export enum LayerStyleType {
@@ -51,6 +51,7 @@ export enum LayerStyleType {
   LINE = "LINE",
   POLYGON = "POLYGON",
   POINT = "POINT",
+  SYMBOL = "SYMBOL",
 }
 
 // Enums for LayerStyle
@@ -59,6 +60,7 @@ export type LayerStyle =
   | LayerStyleLine
   | LayerStylePolygon
   | LayerStylePoint
+  | LayerStyleSymbol
 
 interface LayerStyleBase<T extends LayerStyleType> {
   type: T
@@ -84,4 +86,10 @@ export interface LayerStylePoint extends LayerStyleBase<LayerStyleType.POINT> {
   pointColor?: string
   pointImage?: string
   labelField?: string
+}
+
+export interface LayerStyleSymbol extends LayerStyleBase<LayerStyleType.SYMBOL> {
+  textColor?: string
+  textHaloColor?: string
+  textHaloWidth?: number
 }
