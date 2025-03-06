@@ -363,7 +363,7 @@ onMounted(async () => {
         v-model:layer="layers[editLayerStyleIndex]!"
         v-model:style="layers[editLayerStyleIndex]!.layerStyle"
         @change-style="setLayerStyle"
-        @label-to-map="addLabelLayerToMap"
+        @add-label-to-map="addLabelLayerToMap"
       />
     </Drawer>
 
