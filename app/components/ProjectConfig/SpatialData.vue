@@ -3,7 +3,7 @@ import type { FeatureCollection } from "geojson"
 import type { TileJSON } from "maplibre-gl/src/util/util"
 import type { SpatialDataLayers } from "~/components/ProjectConfig/spatialDataConfig"
 import bbox from "@turf/bbox"
-import { type LayerSpecification, type LngLatBoundsLike, Map as MglMap } from "maplibre-gl"
+import { type ExpressionSpecification, type LayerSpecification, type LngLatBoundsLike, Map as MglMap } from "maplibre-gl"
 import SpatialDataLayer from "~/components/ProjectConfig/SpatialDataLayer.vue"
 import SpatialDataLayerSelect from "~/components/ProjectConfig/SpatialDataLayerSelect.vue"
 import { onMapLoad } from "~/composables/maplibre-helper/onMapLoad"
@@ -230,7 +230,11 @@ onBeforeUnmount(() => {
   map.remove()
 })
 
-function addLabelLayerToMap(layerName: string, layerId: string, layer: LayerDataGeoJSON, labelField: string) {
+function formatLabelExpression(x: string[]) {
+  return ["concat", ...x.flatMap((col) => [["get", col], "\n"] as unknown as ExpressionSpecification).slice(0, -1)] as ExpressionSpecification
+}
+
+function addLabelLayerToMap(layerName: string, layerId: string, layer: LayerDataGeoJSON, labelField: string[]) {
   if (!map.getLayer(layerId) && !map.getSource(layerId)) {
     map.addSource(layerId, {
       type: "geojson",
@@ -247,6 +251,7 @@ function addLabelLayerToMap(layerName: string, layerId: string, layer: LayerData
       layerStyle: {
         labelField,
         textColor: "#FFFFFF",
+        type: LayerStyleType.POINT,
       },
     }, {
       id: layerId,
@@ -256,14 +261,14 @@ function addLabelLayerToMap(layerName: string, layerId: string, layer: LayerData
         "text-color": "#FFFFFF",
       },
       layout: {
-        "text-field": ["get", labelField],
+        "text-field": formatLabelExpression(labelField),
         "text-size": 12,
         "text-font": ["Metropolis Regular"],
       },
     })
   }
 
-  map.setLayoutProperty(layerId, "text-field", ["get", labelField])
+  map.setLayoutProperty(layerId, "text-field", formatLabelExpression(labelField))
 }
 
 onMounted(async () => {

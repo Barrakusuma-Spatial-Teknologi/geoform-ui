@@ -5,7 +5,7 @@ import { centroid } from "@turf/centroid"
 
 const emits = defineEmits<{
   changeStyle: []
-  addLabelToMap: [labelLayerName: string, layerId: string, geoJson: LayerDataGeoJSON, columnName: string]
+  addLabelToMap: [labelLayerName: string, layerId: string, geoJson: LayerDataGeoJSON, columnName: string[]]
 }>()
 
 const style = defineModel<LayerStylePolygon>("style", {
@@ -19,7 +19,7 @@ const data = defineModel<SpatialDataLayers>("data", {
 const layerName = ref<string>()
 const layerStyle = ref<Omit<LayerStylePolygon, "type">>()
 const layerData = ref<LayerDataGeoJSON>()
-const selectedColumnLabel = ref<string>()
+const selectedColumnLabel = ref<string[]>([])
 // const { pause, resume } = watchPausable(layerStyle, () => {
 //   layerStyle.value = {
 //     fillColor: addHashColor(toRaw(style.value.fillColor))!,
@@ -82,7 +82,7 @@ function createPolygonCentroid() {
   layerData.value.data.features = point
 }
 
-function addColumnLabelToStyle(column: string) {
+function addColumnLabelToStyle(column: string[]) {
   style.value = {
     ...style.value,
     labelField: column,
@@ -167,8 +167,9 @@ onMounted(() => {
   </IftaLabel>
   <template v-if="layerData?.type === 'GEOJSON'">
     <IftaLabel fluid>
-      <Select
-        id="columnLabel" v-model="selectedColumnLabel" :options="columnLabelOptions" option-label="label" option-value="value"
+      <MultiSelect
+        id="columnLabel"
+        v-model="selectedColumnLabel" :options="columnLabelOptions" option-label="label" option-value="value"
         fluid
       />
       <label for="columnLabel">Column label</label>

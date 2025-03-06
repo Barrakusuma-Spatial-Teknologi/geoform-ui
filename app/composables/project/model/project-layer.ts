@@ -77,11 +77,11 @@ export interface LayerStylePolygon extends LayerStyleBase<LayerStyleType.POLYGON
   lineColor: string
   lineWidth: number
   fillColor: string
-  labelField?: string
+  labelField?: string[]
 }
 
 export interface LayerStylePoint extends LayerStyleBase<LayerStyleType.POINT> {
   pointColor?: string
   pointImage?: string
-  labelField?: string
+  labelField?: string[]
 }
