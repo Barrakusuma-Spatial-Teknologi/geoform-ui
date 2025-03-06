@@ -121,7 +121,6 @@ const columnLabelOptions = computed<{
 
 onMounted(() => {
   layerStyle.value = {
-    ...style.value,
     fillColor: removeHashColor(toRaw(style.value.fillColor))!,
     lineColor: removeHashColor(toRaw(style.value.lineColor))!,
     lineWidth: toRaw(style.value.lineWidth),
