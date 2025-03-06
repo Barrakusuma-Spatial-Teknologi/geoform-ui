@@ -5,7 +5,7 @@ import { centroid } from "@turf/centroid"
 
 const emits = defineEmits<{
   changeStyle: []
-  addLabelToMap: [labelLayerName: string, layerId: string, geoJson: LayerDataGeoJSON, columnName: string[]]
+  addLabelToMap: [labelLayerName: string, layerId: string, layer: LayerDataGeoJSON, columnName: string[]]
 }>()
 
 const style = defineModel<LayerStylePolygon>("style", {
