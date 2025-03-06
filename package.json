@@ -42,7 +42,6 @@
     "@primevue/nuxt-module": "^4.2.5",
     "@primevue/themes": "^4.2.5",
     "@turf/bbox": "^7.2.0",
-    "@turf/centroid": "^7.2.0",
     "@types/eslint__eslintrc": "^2.1.2",
     "@types/jsonwebtoken": "^9.0.7",
     "@types/uuid": "^10.0.0",

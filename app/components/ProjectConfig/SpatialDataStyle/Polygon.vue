@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { SpatialDataLayers } from "../spatialDataConfig"
 import type { LayerDataGeoJSON, LayerStylePolygon } from "~/composables/project/model/project-layer"
-import { centroid } from "@turf/centroid"
 
 const emits = defineEmits<{
   changeStyle: []
@@ -66,22 +65,6 @@ function changeFillColor(v: any) {
   emits("changeStyle")
 }
 
-function createPolygonCentroid() {
-  if (!layerData.value) {
-    return
-  }
-
-  const point = layerData.value.data.features.map((feature) =>
-    centroid(feature, { properties: toRaw(feature.properties) }),
-  )
-
-  if (!point) {
-    return
-  }
-
-  layerData.value.data.features = point
-}
-
 function addColumnLabelToStyle(column: string[]) {
   style.value = {
     ...style.value,
@@ -132,8 +115,6 @@ onMounted(() => {
       data: toRaw(data.value.layerData.data),
     }
   }
-
-  createPolygonCentroid()
 
   if (style.value.labelField) {
     selectedColumnLabel.value = style.value.labelField

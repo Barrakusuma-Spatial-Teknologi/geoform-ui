@@ -3,9 +3,10 @@ import type { FeatureCollection } from "geojson"
 import type { TileJSON } from "maplibre-gl/src/util/util"
 import type { SpatialDataLayers } from "~/components/ProjectConfig/spatialDataConfig"
 import bbox from "@turf/bbox"
-import { type ExpressionSpecification, type LayerSpecification, type LngLatBoundsLike, Map as MglMap } from "maplibre-gl"
+import { type LayerSpecification, type LngLatBoundsLike, Map as MglMap } from "maplibre-gl"
 import SpatialDataLayer from "~/components/ProjectConfig/SpatialDataLayer.vue"
 import SpatialDataLayerSelect from "~/components/ProjectConfig/SpatialDataLayerSelect.vue"
+import { formatLabelExpression } from "~/composables/maplibre-helper/formatLabelExpression"
 import { onMapLoad } from "~/composables/maplibre-helper/onMapLoad"
 import {
   type LayerData,
@@ -230,10 +231,6 @@ onBeforeUnmount(() => {
   map.remove()
 })
 
-function formatLabelExpression(x: string[]) {
-  return ["concat", ...x.flatMap((col) => [["get", col], "\n"] as unknown as ExpressionSpecification).slice(0, -1)] as ExpressionSpecification
-}
-
 function addLabelLayerToMap(layerName: string, layerId: string, layer: LayerDataGeoJSON, labelField: string[]) {
   if (!map.getLayer(layerId) && !map.getSource(layerId)) {
     map.addSource(layerId, {
@@ -250,8 +247,7 @@ function addLabelLayerToMap(layerName: string, layerId: string, layer: LayerData
       ...baseLayer,
       layerStyle: {
         labelField,
-        textColor: "#FFFFFF",
-        type: LayerStyleType.POINT,
+        type: LayerStyleType.POLYGON,
       },
     }, {
       id: layerId,

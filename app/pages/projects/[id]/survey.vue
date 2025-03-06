@@ -12,6 +12,7 @@ import { match } from "ts-pattern"
 import { submitDataCloud } from "~/components/SurveyData/submitDataCloud"
 import { usePrimaryColor } from "~/composables/color"
 import { useLayoutTitle } from "~/composables/layout"
+import { formatLabelExpression } from "~/composables/maplibre-helper/formatLabelExpression"
 import { onMapLoad } from "~/composables/maplibre-helper/onMapLoad"
 import { useDbTimeMachine } from "~/composables/project/db-time-machine"
 import { LayerDataType, type LayerStylePolygon, type ProjectLayer } from "~/composables/project/model/project-layer"
@@ -300,7 +301,6 @@ onMounted(async () => {
   }
 
   const layers = await useProjectLayer(projectIndex).getAll()
-
   for (const layer of orderBy(layers, ["layerOrder"], ["asc"])) {
     match(layer.layerData)
       .with({ type: LayerDataType.XYZRASTER }, (l) => {
@@ -342,6 +342,21 @@ onMounted(async () => {
             "line-width": layerStyle.lineWidth,
           },
         })
+        if (layerStyle.labelField) {
+          style.layers.push({
+            id: `${layer.id}__symbol`,
+            type: "symbol",
+            source: layer.id,
+            paint: {
+              "text-color": "#FFFFFF",
+            },
+            layout: {
+              "text-field": formatLabelExpression(layerStyle.labelField),
+              "text-size": 12,
+              "text-font": ["Metropolis Regular"],
+            },
+          })
+        }
       })
       .run()
 
