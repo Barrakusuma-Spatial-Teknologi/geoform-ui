@@ -51,7 +51,6 @@ export enum LayerStyleType {
   LINE = "LINE",
   POLYGON = "POLYGON",
   POINT = "POINT",
-  SYMBOL = "SYMBOL",
 }
 
 // Enums for LayerStyle
@@ -60,7 +59,6 @@ export type LayerStyle =
   | LayerStyleLine
   | LayerStylePolygon
   | LayerStylePoint
-  | LayerStyleSymbol
 
 interface LayerStyleBase<T extends LayerStyleType> {
   type: T
@@ -85,12 +83,5 @@ export interface LayerStylePolygon extends LayerStyleBase<LayerStyleType.POLYGON
 export interface LayerStylePoint extends LayerStyleBase<LayerStyleType.POINT> {
   pointColor?: string
   pointImage?: string
-  labelField?: string
-}
-
-export interface LayerStyleSymbol extends LayerStyleBase<LayerStyleType.SYMBOL> {
-  textColor?: string
-  textHaloColor?: string
-  textHaloWidth?: number
   labelField?: string
 }

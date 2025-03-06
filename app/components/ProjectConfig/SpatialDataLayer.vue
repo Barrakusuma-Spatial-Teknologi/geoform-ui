@@ -22,7 +22,7 @@ function styleChanged() {
   emits("changeStyle")
 }
 
-function labelToMap(layerName: string, layerId: string, layer: LayerDataGeoJSON, labelField: string) {
+function addLabelLayerToMap(layerName: string, layerId: string, layer: LayerDataGeoJSON, labelField: string) {
   emits("labelToMap", layerName, layerId, layer, labelField)
 }
 
@@ -46,7 +46,7 @@ onMounted(() => {})
           v-model:data="layer"
           v-model:style="style as LayerStylePolygon"
           @change-style="styleChanged"
-          @label-to-map="labelToMap"
+          @label-to-map="addLabelLayerToMap"
         />
       </template>
     </template>

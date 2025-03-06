@@ -66,7 +66,7 @@ function changeFillColor(v: any) {
   emits("changeStyle")
 }
 
-function polygonCentroid() {
+function createPolygonCentroid() {
   if (!layerData.value) {
     return
   }
@@ -125,13 +125,16 @@ onMounted(() => {
     lineColor: removeHashColor(toRaw(style.value.lineColor))!,
     lineWidth: toRaw(style.value.lineWidth),
   }
+
   if (data.value.layerData?.type === "GEOJSON") {
     layerData.value = {
       type: toRaw(data.value.layerData.type),
       data: toRaw(data.value.layerData.data),
     }
   }
-  polygonCentroid()
+
+  createPolygonCentroid()
+
   if (style.value.labelField) {
     selectedColumnLabel.value = style.value.labelField
   }

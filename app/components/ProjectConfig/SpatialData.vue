@@ -169,7 +169,7 @@ function addLayerGeoJSON(layerName: string, layerId: string, layer: LayerDataGeo
 }
 
 function addLayerWithStyle(_layerId: string, layerConfig: any, ...mapLayers: LayerSpecification[]) {
-  const isSymbolLayer = layerConfig.layerStyle.type === "SYMBOL"
+  const isSymbolLayer = layerConfig.layerStyle.labelField
 
   if (!isSymbolLayer) {
     layers.value.unshift(layerConfig)
@@ -247,7 +247,6 @@ function addLabelLayerToMap(layerName: string, layerId: string, layer: LayerData
       layerStyle: {
         labelField,
         textColor: "#FFFFFF",
-        type: LayerStyleType.SYMBOL,
       },
     }, {
       id: layerId,
