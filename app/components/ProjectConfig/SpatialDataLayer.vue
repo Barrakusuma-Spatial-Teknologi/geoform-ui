@@ -4,7 +4,7 @@ import { type LayerDataGeoJSON, type LayerStylePolygon, LayerStyleType } from "~
 
 const emits = defineEmits<{
   changeStyle: []
-  labelToMap: [string, string, LayerDataGeoJSON]
+  labelToMap: [string, string, LayerDataGeoJSON, string]
 }>()
 
 const layer = defineModel<SpatialDataLayers>("layer", {
@@ -22,8 +22,8 @@ function styleChanged() {
   emits("changeStyle")
 }
 
-function labelToMap(layerName: string, layerId: string, layer: LayerDataGeoJSON) {
-  emits("labelToMap", layerName, layerId, layer)
+function labelToMap(layerName: string, layerId: string, layer: LayerDataGeoJSON, labelField: string) {
+  emits("labelToMap", layerName, layerId, layer, labelField)
 }
 
 const layerType = computed<LayerStyleType | undefined>(() => {

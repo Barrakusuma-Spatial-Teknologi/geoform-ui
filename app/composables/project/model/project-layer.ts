@@ -43,7 +43,7 @@ export interface LayerDataXYZVector extends LayerDataBase<LayerDataType.XYZVECTO
 }
 
 export interface LayerDataGeoJSON extends LayerDataBase<LayerDataType.GEOJSON> {
-  data: FeatureCollection & { columnLabel?: string }
+  data: FeatureCollection
 }
 
 export enum LayerStyleType {
@@ -92,4 +92,5 @@ export interface LayerStyleSymbol extends LayerStyleBase<LayerStyleType.SYMBOL> 
   textColor?: string
   textHaloColor?: string
   textHaloWidth?: number
+  labelField?: string
 }

@@ -5,7 +5,7 @@ import { centroid } from "@turf/centroid"
 
 const emits = defineEmits<{
   changeStyle: []
-  labelToMap: [string, string, LayerDataGeoJSON]
+  labelToMap: [string, string, LayerDataGeoJSON, string]
 }>()
 
 const style = defineModel<LayerStylePolygon>("style", {
@@ -70,37 +70,39 @@ function polygonCentroid() {
   if (!layerData.value) {
     return
   }
+
   const point = layerData.value.data.features.map((feature) =>
     centroid(feature, { properties: toRaw(feature.properties) }),
   )
+
   if (!point) {
     return
   }
+
   layerData.value.data.features = point
 }
 
-function addColumnLabelToLayerData(column: string) {
-  if (data.value.layerData?.type === "GEOJSON") {
-    data.value.layerData.data.columnLabel = column
+function addColumnLabelToStyle(column: string) {
+  style.value = {
+    ...style.value,
+    labelField: column,
   }
-  if (!layerData.value) {
-    return
-  }
-  layerData.value.data.columnLabel = column
 }
 
 watch(selectedColumnLabel, () => {
   if (!selectedColumnLabel.value) {
     return
   }
+
   if (!layerData.value) {
     return
   }
-  addColumnLabelToLayerData(toRaw(selectedColumnLabel.value))
+
+  addColumnLabelToStyle(toRaw(selectedColumnLabel.value))
   const { id, layerName } = data.value
   const labelLayerName = `${layerName}__symbol`
   const lId = `${id}__symbol`
-  emits("labelToMap", labelLayerName, lId, layerData.value)
+  emits("labelToMap", labelLayerName, lId, layerData.value, toRaw(selectedColumnLabel.value))
 })
 
 const columnLabelOptions = computed<{
@@ -110,6 +112,7 @@ const columnLabelOptions = computed<{
   if (!layerData.value?.data?.features?.[0]?.properties) {
     return []
   }
+
   return Object.keys(layerData.value.data.features[0].properties).map((key) => ({
     value: key,
     label: key,
@@ -118,6 +121,7 @@ const columnLabelOptions = computed<{
 
 onMounted(() => {
   layerStyle.value = {
+    ...style.value,
     fillColor: removeHashColor(toRaw(style.value.fillColor))!,
     lineColor: removeHashColor(toRaw(style.value.lineColor))!,
     lineWidth: toRaw(style.value.lineWidth),
@@ -127,12 +131,11 @@ onMounted(() => {
       type: toRaw(data.value.layerData.type),
       data: toRaw(data.value.layerData.data),
     }
-
-    if (data.value.layerData.data.columnLabel) {
-      selectedColumnLabel.value = data.value.layerData.data.columnLabel
-    }
   }
   polygonCentroid()
+  if (style.value.labelField) {
+    selectedColumnLabel.value = style.value.labelField
+  }
 })
 </script>
 
