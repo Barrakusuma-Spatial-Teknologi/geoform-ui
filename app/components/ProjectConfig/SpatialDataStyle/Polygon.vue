@@ -2,6 +2,10 @@
 import type { SpatialDataLayers } from "../spatialDataConfig"
 import type { LayerDataGeoJSON, LayerStylePolygon } from "~/composables/project/model/project-layer"
 
+const props = defineProps<{
+  data: SpatialDataLayers
+}>()
+
 const emits = defineEmits<{
   changeStyle: []
   addLabelLayerToMap: [
@@ -16,9 +20,6 @@ const style = defineModel<LayerStylePolygon>("style", {
   required: true,
 })
 
-const data = defineModel<SpatialDataLayers>("data", {
-  required: true,
-})
 // eslint-disable-next-line unused-imports/no-unused-vars
 const layerName = ref<string>()
 const layerStyle = ref<Omit<LayerStylePolygon, "type">>()
@@ -87,7 +88,7 @@ watch(selectedLabelField, () => {
   }
 
   addLabelFieldToStyle(toRaw(selectedLabelField.value))
-  const { id, layerName } = data.value
+  const { id, layerName } = props.data
   const labelLayerName = `${layerName}__label`
   const labelLayerId = `${id}__label`
   emits("addLabelLayerToMap", labelLayerName, labelLayerId, layerData.value, toRaw(selectedLabelField.value))
@@ -114,10 +115,10 @@ onMounted(() => {
     lineWidth: toRaw(style.value.lineWidth),
   }
 
-  if (data.value.layerData?.type === "GEOJSON") {
+  if (props.data.layerData?.type === "GEOJSON") {
     layerData.value = {
-      type: toRaw(data.value.layerData.type),
-      data: toRaw(data.value.layerData.data),
+      type: toRaw(props.data.layerData.type),
+      data: toRaw(props.data.layerData.data),
     }
   }
 

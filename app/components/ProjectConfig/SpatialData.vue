@@ -237,11 +237,8 @@ function addLabelLayerToMap(
   labelLayerData: LayerDataGeoJSON,
   labelField: string[],
 ) {
-  if (!map.getLayer(labelLayerId) && !map.getSource(labelLayerId)) {
-    map.addSource(labelLayerId, {
-      type: "geojson",
-      data: labelLayerData.data,
-    })
+  const originalLayerId = labelLayerId.split("__")[0]
+  if (!map.getLayer(labelLayerId)) {
     const baseLayer = {
       id: labelLayerId,
       layerData: labelLayerData,
@@ -256,7 +253,7 @@ function addLabelLayerToMap(
     }, {
       id: labelLayerId,
       type: "symbol",
-      source: labelLayerId,
+      source: originalLayerId!,
       paint: {
         "text-color": "#FFFFFF",
       },

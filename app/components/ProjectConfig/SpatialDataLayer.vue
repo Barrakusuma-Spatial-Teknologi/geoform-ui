@@ -53,8 +53,8 @@ onMounted(() => {})
     <template v-if="layerType != null && layer.layerStyle != null">
       <template v-if="layerType === LayerStyleType.POLYGON">
         <ProjectConfigSpatialDataStylePolygon
-          v-model:data="layer"
           v-model:style="style as LayerStylePolygon"
+          :data="layer"
           @change-style="styleChanged"
           @add-label-layer-to-map="addLabelLayerToMap"
         />
