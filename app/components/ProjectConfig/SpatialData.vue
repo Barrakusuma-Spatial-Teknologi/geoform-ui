@@ -6,6 +6,7 @@ import bbox from "@turf/bbox"
 import { type LayerSpecification, type LngLatBoundsLike, Map as MglMap } from "maplibre-gl"
 import SpatialDataLayer from "~/components/ProjectConfig/SpatialDataLayer.vue"
 import SpatialDataLayerSelect from "~/components/ProjectConfig/SpatialDataLayerSelect.vue"
+import { formatLabelExpression } from "~/composables/maplibre-helper/formatLabelExpression"
 import { onMapLoad } from "~/composables/maplibre-helper/onMapLoad"
 import {
   type LayerData,
@@ -169,7 +170,12 @@ function addLayerGeoJSON(layerName: string, layerId: string, layer: LayerDataGeo
 }
 
 function addLayerWithStyle(_layerId: string, layerConfig: any, ...mapLayers: LayerSpecification[]) {
-  layers.value.unshift(layerConfig)
+  const isSymbolLayer = layerConfig.layerStyle.labelField != null
+
+  if (!isSymbolLayer) {
+    layers.value.unshift(layerConfig)
+  }
+
   mapLayers.forEach((layer) => map.addLayer(layer))
 }
 
@@ -181,7 +187,6 @@ function setLayerStyle() {
   if (selectedLayer == null) {
     return
   }
-
   const layerStyle: LayerStyle = selectedLayer.layerStyle!
 
   if (layerStyle.type === LayerStyleType.POINT) {
@@ -225,6 +230,43 @@ onBeforeUnmount(() => {
 
   map.remove()
 })
+
+function addLabelLayerToMap(
+  labelLayerName: string,
+  labelLayerId: string,
+  labelLayerData: LayerDataGeoJSON,
+  labelField: string[],
+) {
+  const originalLayerId = labelLayerId.split("__")[0]
+  if (!map.getLayer(labelLayerId)) {
+    const baseLayer = {
+      id: labelLayerId,
+      layerData: labelLayerData,
+      layerName: labelLayerName,
+      visible: true,
+    }
+    addLayerWithStyle(labelLayerId, {
+      ...baseLayer,
+      layerStyle: {
+        labelField,
+      },
+    }, {
+      id: labelLayerId,
+      type: "symbol",
+      source: originalLayerId!,
+      paint: {
+        "text-color": "#FFFFFF",
+      },
+      layout: {
+        "text-field": formatLabelExpression(labelField),
+        "text-size": 12,
+        "text-font": ["Metropolis Regular"],
+      },
+    })
+  }
+
+  map.setLayoutProperty(labelLayerId, "text-field", formatLabelExpression(labelField))
+}
 
 onMounted(async () => {
   map = new MglMap({
@@ -323,6 +365,7 @@ onMounted(async () => {
         v-model:layer="layers[editLayerStyleIndex]!"
         v-model:style="layers[editLayerStyleIndex]!.layerStyle"
         @change-style="setLayerStyle"
+        @add-label-layer-to-map="addLabelLayerToMap"
       />
     </Drawer>
 

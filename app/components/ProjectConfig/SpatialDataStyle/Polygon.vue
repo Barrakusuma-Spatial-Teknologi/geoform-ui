@@ -1,16 +1,30 @@
 <script setup lang="ts">
-import type { LayerStylePolygon } from "~/composables/project/project-layer"
+import type { SpatialDataLayers } from "../spatialDataConfig"
+import type { LayerDataGeoJSON, LayerStylePolygon } from "~/composables/project/model/project-layer"
+
+const props = defineProps<{
+  data: SpatialDataLayers
+}>()
 
 const emits = defineEmits<{
   changeStyle: []
+  addLabelLayerToMap: [
+    labelLayerName: string,
+    labelLayerId: string,
+    labelLayerData: LayerDataGeoJSON,
+    labelField: string[],
+  ]
 }>()
 
 const style = defineModel<LayerStylePolygon>("style", {
   required: true,
 })
 
+// eslint-disable-next-line unused-imports/no-unused-vars
 const layerName = ref<string>()
 const layerStyle = ref<Omit<LayerStylePolygon, "type">>()
+const layerData = ref<LayerDataGeoJSON>()
+const selectedLabelField = ref<string[]>([])
 // const { pause, resume } = watchPausable(layerStyle, () => {
 //   layerStyle.value = {
 //     fillColor: addHashColor(toRaw(style.value.fillColor))!,
@@ -20,6 +34,7 @@ const layerStyle = ref<Omit<LayerStylePolygon, "type">>()
 //   emits("changeStyle")
 // })
 
+// eslint-disable-next-line unused-imports/no-unused-vars
 function addHashColor(color?: string): string {
   if (color == null) {
     return ""
@@ -56,11 +71,59 @@ function changeFillColor(v: any) {
   emits("changeStyle")
 }
 
+function addLabelFieldToStyle(labelField: string[]) {
+  style.value = {
+    ...style.value,
+    labelField,
+  }
+}
+
+watch(selectedLabelField, () => {
+  if (!selectedLabelField.value) {
+    return
+  }
+
+  if (!layerData.value) {
+    return
+  }
+
+  addLabelFieldToStyle(toRaw(selectedLabelField.value))
+  const { id, layerName } = props.data
+  const labelLayerName = `${layerName}__label`
+  const labelLayerId = `${id}__label`
+  emits("addLabelLayerToMap", labelLayerName, labelLayerId, layerData.value, toRaw(selectedLabelField.value))
+})
+
+const labelFieldsOptions = computed<{
+  value: string
+  label: string
+}[]>(() => {
+  if (!layerData.value?.data?.features?.[0]?.properties) {
+    return []
+  }
+
+  return Object.keys(layerData.value.data.features[0].properties).map((key) => ({
+    value: key,
+    label: key,
+  }))
+})
+
 onMounted(() => {
   layerStyle.value = {
     fillColor: removeHashColor(toRaw(style.value.fillColor))!,
     lineColor: removeHashColor(toRaw(style.value.lineColor))!,
     lineWidth: toRaw(style.value.lineWidth),
+  }
+
+  if (props.data.layerData?.type === "GEOJSON") {
+    layerData.value = {
+      type: toRaw(props.data.layerData.type),
+      data: toRaw(props.data.layerData.data),
+    }
+  }
+
+  if (style.value.labelField) {
+    selectedLabelField.value = style.value.labelField
   }
 })
 </script>
@@ -89,6 +152,16 @@ onMounted(() => {
       </div>
     </div>
   </IftaLabel>
+  <template v-if="layerData?.type === 'GEOJSON'">
+    <IftaLabel fluid>
+      <MultiSelect
+        id="labelFields"
+        v-model="selectedLabelField" :options="labelFieldsOptions" option-label="label" option-value="value"
+        fluid
+      />
+      <label for="labelFields">Label Field</label>
+    </IftaLabel>
+  </template>
   <IftaLabel fluid>
     <InputNumber v-if="layerStyle != null" v-model="layerStyle.lineWidth" fluid disabled />
     <label for="layerName">Line width</label>
