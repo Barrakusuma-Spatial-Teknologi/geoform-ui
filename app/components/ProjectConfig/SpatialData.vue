@@ -170,7 +170,7 @@ function addLayerGeoJSON(layerName: string, layerId: string, layer: LayerDataGeo
 }
 
 function addLayerWithStyle(_layerId: string, layerConfig: any, ...mapLayers: LayerSpecification[]) {
-  const isSymbolLayer = layerConfig.layerStyle.labelField
+  const isSymbolLayer = layerConfig.layerStyle.labelField != null
 
   if (!isSymbolLayer) {
     layers.value.unshift(layerConfig)
