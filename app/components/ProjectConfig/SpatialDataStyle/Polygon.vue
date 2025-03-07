@@ -4,7 +4,12 @@ import type { LayerDataGeoJSON, LayerStylePolygon } from "~/composables/project/
 
 const emits = defineEmits<{
   changeStyle: []
-  addLabelToMap: [labelLayerName: string, layerId: string, layer: LayerDataGeoJSON, columnName: string[]]
+  addLabelLayerToMap: [
+    labelLayerName: string,
+    labelLayerId: string,
+    labelLayerData: LayerDataGeoJSON,
+    labelField: string[],
+  ]
 }>()
 
 const style = defineModel<LayerStylePolygon>("style", {
@@ -18,7 +23,7 @@ const data = defineModel<SpatialDataLayers>("data", {
 const layerName = ref<string>()
 const layerStyle = ref<Omit<LayerStylePolygon, "type">>()
 const layerData = ref<LayerDataGeoJSON>()
-const selectedColumnLabel = ref<string[]>([])
+const selectedLabelField = ref<string[]>([])
 // const { pause, resume } = watchPausable(layerStyle, () => {
 //   layerStyle.value = {
 //     fillColor: addHashColor(toRaw(style.value.fillColor))!,
@@ -65,15 +70,15 @@ function changeFillColor(v: any) {
   emits("changeStyle")
 }
 
-function addColumnLabelToStyle(column: string[]) {
+function addLabelFieldToStyle(labelField: string[]) {
   style.value = {
     ...style.value,
-    labelField: column,
+    labelField,
   }
 }
 
-watch(selectedColumnLabel, () => {
-  if (!selectedColumnLabel.value) {
+watch(selectedLabelField, () => {
+  if (!selectedLabelField.value) {
     return
   }
 
@@ -81,14 +86,14 @@ watch(selectedColumnLabel, () => {
     return
   }
 
-  addColumnLabelToStyle(toRaw(selectedColumnLabel.value))
+  addLabelFieldToStyle(toRaw(selectedLabelField.value))
   const { id, layerName } = data.value
-  const labelLayerName = `${layerName}__symbol`
-  const lId = `${id}__symbol`
-  emits("addLabelToMap", labelLayerName, lId, layerData.value, toRaw(selectedColumnLabel.value))
+  const labelLayerName = `${layerName}__label`
+  const labelLayerId = `${id}__label`
+  emits("addLabelLayerToMap", labelLayerName, labelLayerId, layerData.value, toRaw(selectedLabelField.value))
 })
 
-const columnLabelOptions = computed<{
+const labelFieldsOptions = computed<{
   value: string
   label: string
 }[]>(() => {
@@ -117,7 +122,7 @@ onMounted(() => {
   }
 
   if (style.value.labelField) {
-    selectedColumnLabel.value = style.value.labelField
+    selectedLabelField.value = style.value.labelField
   }
 })
 </script>
@@ -149,11 +154,11 @@ onMounted(() => {
   <template v-if="layerData?.type === 'GEOJSON'">
     <IftaLabel fluid>
       <MultiSelect
-        id="columnLabel"
-        v-model="selectedColumnLabel" :options="columnLabelOptions" option-label="label" option-value="value"
+        id="labelFields"
+        v-model="selectedLabelField" :options="labelFieldsOptions" option-label="label" option-value="value"
         fluid
       />
-      <label for="columnLabel">Column label</label>
+      <label for="labelFields">Label Field</label>
     </IftaLabel>
   </template>
   <IftaLabel fluid>

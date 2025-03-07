@@ -344,7 +344,7 @@ onMounted(async () => {
         })
         if (layerStyle.labelField) {
           style.layers.push({
-            id: `${layer.id}__symbol`,
+            id: `${layer.id}__label`,
             type: "symbol",
             source: layer.id,
             paint: {

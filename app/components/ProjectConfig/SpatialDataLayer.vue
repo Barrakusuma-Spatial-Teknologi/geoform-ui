@@ -4,7 +4,12 @@ import { type LayerDataGeoJSON, type LayerStylePolygon, LayerStyleType } from "~
 
 const emits = defineEmits<{
   changeStyle: []
-  addLabelToMap: [layerName: string, layerId: string, layer: LayerDataGeoJSON, labelField: string[]]
+  addLabelLayerToMap: [
+    labelLayerName: string,
+    labelLayerId: string,
+    labelLayerData: LayerDataGeoJSON,
+    labelField: string[],
+  ]
 }>()
 
 const layer = defineModel<SpatialDataLayers>("layer", {
@@ -22,8 +27,13 @@ function styleChanged() {
   emits("changeStyle")
 }
 
-function addLabelLayerToMap(layerName: string, layerId: string, layer: LayerDataGeoJSON, labelField: string[]) {
-  emits("addLabelToMap", layerName, layerId, layer, labelField)
+function addLabelLayerToMap(
+  labelLayerName: string,
+  labelLayerId: string,
+  labelLayerData: LayerDataGeoJSON,
+  labelField: string[],
+) {
+  emits("addLabelLayerToMap", labelLayerName, labelLayerId, labelLayerData, labelField)
 }
 
 const layerType = computed<LayerStyleType | undefined>(() => {
@@ -46,7 +56,7 @@ onMounted(() => {})
           v-model:data="layer"
           v-model:style="style as LayerStylePolygon"
           @change-style="styleChanged"
-          @add-label-to-map="addLabelLayerToMap"
+          @add-label-layer-to-map="addLabelLayerToMap"
         />
       </template>
     </template>

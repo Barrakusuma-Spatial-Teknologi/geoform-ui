@@ -231,28 +231,32 @@ onBeforeUnmount(() => {
   map.remove()
 })
 
-function addLabelLayerToMap(layerName: string, layerId: string, layer: LayerDataGeoJSON, labelField: string[]) {
-  if (!map.getLayer(layerId) && !map.getSource(layerId)) {
-    map.addSource(layerId, {
+function addLabelLayerToMap(
+  labelLayerName: string,
+  labelLayerId: string,
+  labelLayerData: LayerDataGeoJSON,
+  labelField: string[],
+) {
+  if (!map.getLayer(labelLayerId) && !map.getSource(labelLayerId)) {
+    map.addSource(labelLayerId, {
       type: "geojson",
-      data: layer.data,
+      data: labelLayerData.data,
     })
     const baseLayer = {
-      id: layerId,
-      layerData: layer,
-      layerName,
+      id: labelLayerId,
+      layerData: labelLayerData,
+      layerName: labelLayerName,
       visible: true,
     }
-    addLayerWithStyle(layerId, {
+    addLayerWithStyle(labelLayerId, {
       ...baseLayer,
       layerStyle: {
         labelField,
-        type: LayerStyleType.POLYGON,
       },
     }, {
-      id: layerId,
+      id: labelLayerId,
       type: "symbol",
-      source: layerId,
+      source: labelLayerId,
       paint: {
         "text-color": "#FFFFFF",
       },
@@ -264,7 +268,7 @@ function addLabelLayerToMap(layerName: string, layerId: string, layer: LayerData
     })
   }
 
-  map.setLayoutProperty(layerId, "text-field", formatLabelExpression(labelField))
+  map.setLayoutProperty(labelLayerId, "text-field", formatLabelExpression(labelField))
 }
 
 onMounted(async () => {
@@ -364,7 +368,7 @@ onMounted(async () => {
         v-model:layer="layers[editLayerStyleIndex]!"
         v-model:style="layers[editLayerStyleIndex]!.layerStyle"
         @change-style="setLayerStyle"
-        @add-label-to-map="addLabelLayerToMap"
+        @add-label-layer-to-map="addLabelLayerToMap"
       />
     </Drawer>
 
