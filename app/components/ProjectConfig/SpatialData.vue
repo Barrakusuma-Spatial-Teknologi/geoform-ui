@@ -4,6 +4,7 @@ import type { TileJSON } from "maplibre-gl/src/util/util"
 import type { SpatialDataLayers } from "~/components/ProjectConfig/spatialDataConfig"
 import bbox from "@turf/bbox"
 import { type LayerSpecification, type LngLatBoundsLike, Map as MglMap } from "maplibre-gl"
+import { match } from "ts-pattern"
 import SpatialDataLayer from "~/components/ProjectConfig/SpatialDataLayer.vue"
 import SpatialDataLayerSelect from "~/components/ProjectConfig/SpatialDataLayerSelect.vue"
 import { formatLabelExpression } from "~/composables/maplibre-helper/formatLabelExpression"
@@ -318,6 +319,10 @@ onMounted(async () => {
       continue
     }
 
+    if (!layer.layerData) {
+      return
+    }
+
     if (layer.layerData.type === LayerDataType.XYZRASTER) {
       map.addSource(layer.id, {
         type: "raster",
@@ -331,8 +336,87 @@ onMounted(async () => {
       })
     }
     else if (layer.layerData.type === LayerDataType.GEOJSON) {
-      // map.addS
-      // if(layer.layerStyle)
+      map.addSource(layer.id, {
+        type: "geojson",
+        data: layer.layerData.data,
+      })
+      match(layer.layerStyle)
+        .with({ type: LayerStyleType.POLYGON }, (layerStyle) => {
+          map.addLayer({
+            id: layer.id,
+            type: "fill",
+            source: layer.id,
+            paint: {
+              "fill-color": layerStyle.fillColor,
+              "fill-opacity": 0.4,
+            },
+          })
+
+          map.addLayer({
+            id: `${layer.id}__line`,
+            type: "line",
+            source: layer.id,
+            paint: {
+              "line-color": layerStyle.lineColor,
+              "line-width": layerStyle.lineWidth,
+            },
+          })
+
+          if (layerStyle.labelField) {
+            map.addLayer({
+              id: `${layer.id}__label`,
+              type: "symbol",
+              source: layer.id,
+              paint: {
+                "text-color": "#FFFFFF",
+              },
+              layout: {
+                "text-field": formatLabelExpression(layerStyle.labelField),
+                "text-size": 12,
+                "text-font": ["Metropolis Regular"],
+              },
+            })
+          }
+        })
+        .with({ type: LayerStyleType.LINE }, (layerStyle) => {
+          map.addLayer({
+            id: layer.id,
+            type: "line",
+            source: layer.id,
+            paint: {
+              "line-color": layerStyle.lineColor,
+              "line-width": layerStyle.lineWidth,
+            },
+          })
+        })
+        .with({ type: LayerStyleType.POINT }, (layerStyle) => {
+          map.addLayer({
+            id: layer.id,
+            type: "circle",
+            source: layer.id,
+            paint: {
+              "circle-color": layerStyle.pointColor,
+            },
+          })
+          if (layerStyle.labelField) {
+            map.addLayer({
+              id: `${layer.id}__label`,
+              type: "symbol",
+              source: layer.id,
+              paint: {
+                "text-color": "#FFFFFF",
+              },
+              layout: {
+                "text-field": formatLabelExpression(layerStyle.labelField),
+                "text-size": 12,
+                "text-font": ["Metropolis Regular"],
+              },
+            })
+          }
+        })
+        .run()
+
+      zoomToGeoJSON(layer.layerData.data)
     }
   }
 })
