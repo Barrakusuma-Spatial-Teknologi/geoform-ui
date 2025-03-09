@@ -72,7 +72,9 @@ async function resetFields() {
       if (field.type === FieldType.DATE && value != null) {
         value = new Date(value as string)
       }
+
       init[field.key] = value
+
       return {
         ...field,
         value,
