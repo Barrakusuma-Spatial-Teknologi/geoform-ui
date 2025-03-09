@@ -7,9 +7,12 @@ import {
   type FieldConfigImage,
   type FieldConfigNumber,
   type FieldConfigText,
-  fieldOptions,
   FieldType,
 } from "~/composables/project/model/project"
+
+const props = defineProps<{
+  fieldOptions: FieldType[] | Exclude<FieldType, FieldType.NESTED>[]
+}>()
 
 const emits = defineEmits<{
   remove: []
@@ -50,7 +53,7 @@ onMounted(() => {
         v-model="field!.type"
         :disabled="field.strictChange"
         input-id="field-type"
-        :options="fieldOptions"
+        :options="props.fieldOptions"
         class="w-full" variant="filled"
         @update:model-value="(v) => {
           if (v === FieldType.CHECKBOX) {
