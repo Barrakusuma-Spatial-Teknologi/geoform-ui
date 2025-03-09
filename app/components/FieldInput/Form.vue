@@ -6,6 +6,7 @@ import { get } from "es-toolkit/compat"
 import { createZodSchema } from "~/components/FieldInput/form-validation"
 import { type FieldConfig, FieldType } from "~/composables/project/model/project"
 import { useProjectData } from "~/composables/project/project-data"
+import FormInputSingular from "./FormInputSingular.vue"
 
 const props = defineProps<{
   projectId: string
@@ -71,9 +72,7 @@ async function resetFields() {
       if (field.type === FieldType.DATE && value != null) {
         value = new Date(value as string)
       }
-
       init[field.key] = value
-
       return {
         ...field,
         value,
@@ -210,120 +209,19 @@ onDeactivated(() => {
           v-for="field in props.fields" :key="field.key" class="w-full space-y-2"
           :class="[field.required ? 'required' : '']"
         >
-          <template v-if="field.type === FieldType.TEXT">
-            <div class="space-y-1">
-              <label class="text-sm" :for="field.key">
-                {{ field.name }}
-              </label>
-              <InputText :id="field.key" :name="field.key" fluid />
-              <Message v-if="$form[field.key]?.invalid" class="h-5" severity="error" size="small" variant="simple">
-                {{ $form[field.key]?.error?.message }}
-              </Message>
-            </div>
+          <template v-if="field.type !== FieldType.NESTED">
+            <FormInputSingular :field="field" :form="$form" />
           </template>
-          <template v-else-if="field.type === FieldType.NUMBER">
-            <div class="space-y-1">
-              <label class="text-sm" :for="field.key">
-                {{ field.name }}
-              </label>
-              <InputNumber
-                :id="field.key" :name="field.key" locale="id-ID"
-                :min-fraction-digits="(field?.fieldConfig?.isFloat ?? false) ? 1 : 0"
-                :max-fraction-digits="(field?.fieldConfig?.isFloat ?? false) ? 10 : 1"
-                fluid
-              />
-              <Message v-if="$form[field.key]?.invalid" severity="error" size="small" variant="simple">
-                {{ $form[field.key]?.error?.message }}
-              </Message>
-            </div>
-          </template>
-
-          <template v-else-if="field.type === FieldType.DATE">
-            <div class="space-y-1">
-              <label class="text-sm" :for="field.key">
-                {{ field.name }}
-              </label>
-              <DatePicker :id="field.key" :name="field.key" fluid date-format="dd/mm/yy" />
-
-              <Message v-if="$form[field.key]?.invalid" severity="error" size="small" variant="simple">
-                {{ $form[field.key]?.error?.message }}
-              </Message>
-            </div>
-          </template>
-
-          <template v-else-if="field.type === FieldType.IMAGE">
-            <div class="space-y-1">
-              <label class="text-sm" :for="field.key">
-                {{ field.name }}
-              </label>
-              <FormField v-slot="$field" :name="field.key" :initial-value="$form[field.key]?.value">
-                <FieldInputImage
-                  :id="field.key"
-                  :default-value="$form[field.key]?.value"
-                  :config="field.fieldConfig"
-                  :prime-field="$field"
-                  @update:image="(value) => {
-                    // @ts-expect-error fast bypass
-                    $field.onInput({ data: value, value } as InputEvent)
-                  }"
-                />
-
-                <Message v-if="$form[field.key]?.invalid" severity="error" size="small" variant="simple">
-                  {{ $form[field.key]?.error?.message }}
-                </Message>
-              </FormField>
-            </div>
-          </template>
-
-          <template v-else-if="field.type === FieldType.CHECKBOX">
-            <div class="space-y-1">
-              <label class="text-sm" :for="field.key">
-                {{ field.name }}
-              </label>
-              <Listbox
-                v-if="(field.fieldConfig?.options ?? []).length <= 4"
-                :id="field.key" :name="field.key"
-                :multiple="field.fieldConfig?.multiple ?? true"
-                :options="field.fieldConfig?.options ?? []" option-label="value" option-value="key" class="w-full"
-                fluid
-              />
-              <MultiSelect
-                v-else-if="field.fieldConfig?.multiple ?? true"
-                :id="field.key" :name="field.key"
-                filter
-                :options="field.fieldConfig?.options ?? []"
-                option-label="value"
-                option-value="key"
-                class="w-full"
-                fluid
-              />
-              <Select
-                v-else
-                :id="field.key" :name="field.key"
-                filter
-                :options="field.fieldConfig?.options ?? []"
-                option-label="value"
-                option-value="key"
-                class="w-full"
-                fluid
-              />
-
-              <Message v-if="$form[field.key]?.invalid" severity="error" size="small" variant="simple">
-                {{ $form[field.key]?.error?.message }}
-              </Message>
-            </div>
-          </template>
-
-          <template v-else-if="field.type === FieldType.BOOLEAN">
-            <div class="space-y-1">
-              <div class="flex items-center gap-2">
-                <Checkbox :id="field.key" :name="field.key" binary />
-                <label :for="field.key"> {{ field.name }} </label>
-              </div>
-              <Message v-if="$form[field.key]?.invalid" severity="error" size="small" variant="simple">
-                {{ $form[field.key]?.error?.message }}
-              </Message>
-            </div>
+          <template v-else>
+            <label class="text-sm">
+              {{ field.name }}
+            </label>
+            <li
+              v-for="(fieldChild) in field.fields" :key="fieldChild.key"
+              :class="[fieldChild.required ? 'required' : '']"
+            >
+              <FormInputSingular :field="fieldChild" :form="$form" />
+            </li>
           </template>
         </li>
       </ul>

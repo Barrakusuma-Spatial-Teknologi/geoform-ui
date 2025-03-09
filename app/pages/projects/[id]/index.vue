@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import type { FieldConfigWrapper } from "~/components/ProjectConfig/formConfig"
 import type { SpatialDataLayers } from "~/components/ProjectConfig/spatialDataConfig"
-import type { FieldConfig } from "~/composables/project/model/project"
 import { omit } from "es-toolkit"
 import { get } from "radash"
 import { useAuth } from "~/composables/auth"
 import { useLayoutTitle } from "~/composables/layout"
+import { type FieldConfig, FieldType } from "~/composables/project/model/project"
 import { useProjectStore } from "~/composables/project/project"
 import { useProjectLayer } from "~/composables/project/project-layer"
 import { useUiBlocker } from "~/composables/ui/blocker"
@@ -67,6 +67,12 @@ async function saveProject() {
   const parsedFields = fields.value.map((field) => ({
     ...omit(field, ["dirty"]),
     fieldConfig: toRaw(field.fieldConfig),
+    ...(field.type === FieldType.NESTED
+      ? { fields: toRaw(field.fields).map((f) => ({
+          ...f,
+          fieldConfig: toRaw(f.fieldConfig),
+        })) }
+      : {}),
   } as FieldConfig))
 
   if (projectId.value == null || projectId.value === "new") {
