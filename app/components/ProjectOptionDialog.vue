@@ -269,9 +269,13 @@ const manageAccessVisible = ref(false)
 </template>
 
 <style scoped>
+ul > li:where([class~="dark"], [class~="dark"] *):not(:last-child) {
+  border-bottom: 1px solid var(--p-surface-700);
+}
+
 ul > li:not(:last-child) {
   padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--p-surface-700);
+  border-bottom: 1px solid var(--p-surface-300);
 }
 
 ul > li {
@@ -279,7 +283,11 @@ ul > li {
   @apply space-x-4 items-center;
 }
 
-li > div:not(:last-child) {
+li > div:where([class~="dark"], [class~="dark"] *):not(:last-child) {
   @apply text-lg text-surface-300/70;
+}
+
+li > div:not(:last-child) {
+  @apply text-lg text-surface-500/70;
 }
 </style>
