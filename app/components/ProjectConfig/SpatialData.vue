@@ -40,7 +40,9 @@ function setLayerVisible(layerId: string, visible: boolean) {
 
 function zoomToGeoJSON(geojson: FeatureCollection) {
   const extent = bbox(geojson)
-  map.fitBounds(extent as unknown as LngLatBoundsLike)
+  map.fitBounds(extent as unknown as LngLatBoundsLike, {
+    animate: false,
+  })
 }
 
 const toast = useToast()
@@ -336,6 +338,10 @@ onMounted(async () => {
       })
     }
     else if (layer.layerData.type === LayerDataType.GEOJSON) {
+      if (layer.layerData.validation == null) {
+        layer.layerData.validation = { mode: "off" }
+      }
+
       map.addSource(layer.id, {
         type: "geojson",
         data: layer.layerData.data,
@@ -369,6 +375,8 @@ onMounted(async () => {
               source: layer.id,
               paint: {
                 "text-color": "#FFFFFF",
+                "text-halo-color": "#000000",
+                "text-halo-width": 2,
               },
               layout: {
                 "text-field": formatLabelExpression(layerStyle.labelField),

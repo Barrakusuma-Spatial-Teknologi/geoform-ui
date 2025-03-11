@@ -1,10 +1,15 @@
 <script setup lang="ts">
 import type { SpatialDataLayers } from "../spatialDataConfig"
-import type { LayerDataGeoJSON, LayerStylePolygon } from "~/composables/project/model/project-layer"
+import LayerValidation from "~/components/ProjectConfig/SpatialDataStyle/LayerValidation.vue"
+import {
+  type LayerDataGeoJSON,
+  LayerDataType,
+  type LayerStylePolygon,
+} from "~/composables/project/model/project-layer"
 
-const props = defineProps<{
-  data: SpatialDataLayers
-}>()
+// const props = defineProps<{
+//   data: SpatialDataLayers
+// }>()
 
 const emits = defineEmits<{
   changeStyle: []
@@ -16,6 +21,8 @@ const emits = defineEmits<{
   ]
 }>()
 
+const data = defineModel<SpatialDataLayers>("data", { required: true })
+
 const style = defineModel<LayerStylePolygon>("style", {
   required: true,
 })
@@ -25,14 +32,6 @@ const layerName = ref<string>()
 const layerStyle = ref<Omit<LayerStylePolygon, "type">>()
 const layerData = ref<LayerDataGeoJSON>()
 const selectedLabelField = ref<string[]>([])
-// const { pause, resume } = watchPausable(layerStyle, () => {
-//   layerStyle.value = {
-//     fillColor: addHashColor(toRaw(style.value.fillColor))!,
-//     lineColor: addHashColor(toRaw(style.value.lineColor))!,
-//     lineWidth: toRaw(style.value.lineWidth),
-//   }
-//   emits("changeStyle")
-// })
 
 // eslint-disable-next-line unused-imports/no-unused-vars
 function addHashColor(color?: string): string {
@@ -88,7 +87,7 @@ watch(selectedLabelField, () => {
   }
 
   addLabelFieldToStyle(toRaw(selectedLabelField.value))
-  const { id, layerName } = props.data
+  const { id, layerName } = data.value
   const labelLayerName = `${layerName}__label`
   const labelLayerId = `${id}__label`
   emits("addLabelLayerToMap", labelLayerName, labelLayerId, layerData.value, toRaw(selectedLabelField.value))
@@ -115,10 +114,10 @@ onMounted(() => {
     lineWidth: toRaw(style.value.lineWidth),
   }
 
-  if (props.data.layerData?.type === "GEOJSON") {
+  if (data.value.layerData?.type === "GEOJSON") {
     layerData.value = {
-      type: toRaw(props.data.layerData.type),
-      data: toRaw(props.data.layerData.data),
+      type: toRaw(data.value.layerData.type),
+      data: toRaw(data.value.layerData.data),
     }
   }
 
@@ -152,20 +151,20 @@ onMounted(() => {
       </div>
     </div>
   </IftaLabel>
-  <template v-if="layerData?.type === 'GEOJSON'">
-    <IftaLabel fluid>
-      <MultiSelect
-        id="labelFields"
-        v-model="selectedLabelField" :options="labelFieldsOptions" option-label="label" option-value="value"
-        fluid
-      />
-      <label for="labelFields">Label Field</label>
-    </IftaLabel>
-  </template>
   <IftaLabel fluid>
     <InputNumber v-if="layerStyle != null" v-model="layerStyle.lineWidth" fluid disabled />
     <label for="layerName">Line width</label>
   </IftaLabel>
+  <IftaLabel fluid>
+    <MultiSelect
+      id="labelFields"
+      v-model="selectedLabelField" :options="labelFieldsOptions" option-label="label" option-value="value"
+      fluid
+      show-clear
+    />
+    <label for="labelFields">Label Field</label>
+  </IftaLabel>
+  <LayerValidation v-if="data?.layerData != null && data?.layerData.type === LayerDataType.GEOJSON" v-model:value="data.layerData!.validation!" />
 </template>
 
 <style scoped>
