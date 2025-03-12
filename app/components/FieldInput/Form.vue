@@ -112,7 +112,6 @@ interface NestedField {
 }
 
 const nestedFieldsData = ref<Record<string, NestedField>>({})
-const addNewItemButtonRef = ref<HTMLDivElement>()
 const nestedFieldConfig = ref<FieldConfigNested[]>([])
 const nestedEditVisible = ref<boolean>(false)
 const editFieldValues = ref<Record<string, NestedValue>>({})
@@ -378,7 +377,7 @@ onDeactivated(() => {
                 </template>
 
                 <div
-                  id="addNewItemButton" ref="addNewItemButtonRef" class="mt-2 box-border flex justify-center px-2 py-1"
+                  class="mt-2 box-border flex justify-center px-2 py-1"
                   :class="!nestedFieldsData[field.key] || nestedFieldsData[field.key]!.count === 0
                     ? 'border-dashed border-2' : ''"
                 >
