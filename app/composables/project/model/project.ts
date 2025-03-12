@@ -32,6 +32,14 @@ export const fieldOptions: FieldType[] = [
   // FieldType.NESTED,
 ]
 
+export const FieldOptionSearchable: FieldType[] = [
+  FieldType.TEXT,
+  FieldType.NUMBER,
+  FieldType.DATE,
+  FieldType.CHECKBOX,
+  FieldType.BOOLEAN,
+]
+
 interface FC<FT extends FieldType> {
   key: string
   name: string

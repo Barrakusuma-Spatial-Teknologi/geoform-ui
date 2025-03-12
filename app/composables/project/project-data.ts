@@ -1,4 +1,5 @@
 import type { ProjectData, ProjectDataFeature } from "~/composables/project/model/project-data"
+import destr from "destr"
 import { liveQuery } from "dexie"
 import { changeTrackerChannel, TableChangeType, useDb } from "~/composables/project/db"
 import { generateId } from "~/utils/generateId"
@@ -116,8 +117,16 @@ export function useProjectData(projectId: string) {
     })
   }
 
-  const getAll = async () => {
-    return (await db.projectData.where("projectId").equals(projectId).toArray())
+  const getAll = async (pageOpt?: PaginationOption, queryOpt?: ProjectDataQueryOption) => {
+    if (pageOpt != null) {
+      // eslint-disable-next-line ts/no-use-before-define
+      return getWithPage(pageOpt, queryOpt)
+    }
+
+    // eslint-disable-next-line ts/no-use-before-define
+    const query = constructQuery(queryOpt)
+
+    return (await query.toArray())
       .map((row) => ({
         ...row,
         data: JSON.parse(row.data as string) as ProjectDataFeature,
@@ -150,6 +159,39 @@ export function useProjectData(projectId: string) {
     })
   }
 
+  const constructQuery = (queryOpt?: ProjectDataQueryOption) => {
+    let query = db.projectData.where("projectId").equals(projectId)
+    if (queryOpt != null) {
+      query = query.filter((row) => {
+        const fieldValue = destr<ProjectDataFeature>(row.data as string).data[queryOpt.field]
+        if (fieldValue == null) {
+          return false
+        }
+
+        return String(fieldValue).includes(queryOpt.keyword)
+      })
+    }
+    return query
+  }
+
+  const count = async (queryOpt?: ProjectDataQueryOption) => {
+    const query = constructQuery(queryOpt)
+    return query.count()
+  }
+
+  const getWithPage = async (opt: PaginationOption, queryOpt?: ProjectDataQueryOption) => {
+    const limit = opt.perPage
+    const offset = (opt.page - 1) * opt.perPage
+
+    const query = constructQuery(queryOpt)
+
+    return (await query.offset(offset).limit(limit).toArray())
+      .map((row) => ({
+        ...row,
+        data: JSON.parse(row.data as string) as ProjectDataFeature,
+      }))
+  }
+
   return {
     data,
 
@@ -165,5 +207,17 @@ export function useProjectData(projectId: string) {
     updateImage,
     deleteImage,
     upsertImage,
+
+    count,
   }
+}
+
+export interface ProjectDataQueryOption {
+  keyword: string
+  field: string
+}
+
+export interface PaginationOption {
+  page: number
+  perPage: number
 }
