@@ -40,6 +40,7 @@ function save(e: FormSubmitEvent) {
     editFieldValues.value = {}
     return
   }
+
   emits("addNestedFieldData", e.values, Object.keys(editFieldValues.value)[0]!)
   editFieldValues.value = {}
 }
