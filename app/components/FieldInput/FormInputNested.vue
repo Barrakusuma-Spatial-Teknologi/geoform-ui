@@ -11,13 +11,10 @@ const props = defineProps<{
 
 const emits = defineEmits<{
   addNestedFieldData: [nestedFieldData: Record<string, any>, nestedItemKey: string]
+  changeFormMode: [isNestedMode: boolean]
 }>()
 
-const mode = defineModel<"all fields" | "nested fields">("mode", {
-  required: true,
-})
-
-const editFieldValues = defineModel<any>("editFieldValues", {
+const editFieldValues = defineModel<Record<string, any>>("editFieldValues", {
   required: false,
 })
 const validationSchema = ref(zodResolver(createZodSchema(props.nestedField[0]!.fields)))
@@ -32,7 +29,7 @@ function save(e: FormSubmitEvent) {
     return
   }
 
-  mode.value = "all fields"
+  emits("changeFormMode", false)
   const nestedItemKey = generateLighterId()
 
   if (!editFieldValues.value || Object.keys(editFieldValues.value).length === 0) {
@@ -42,6 +39,11 @@ function save(e: FormSubmitEvent) {
   }
 
   emits("addNestedFieldData", e.values, Object.keys(editFieldValues.value)[0]!)
+  editFieldValues.value = {}
+}
+
+function handleCancelButton() {
+  emits("changeFormMode", false)
   editFieldValues.value = {}
 }
 
@@ -76,10 +78,7 @@ const initialValues = computed(() => {
 
       <div class="flex w-full justify-between gap-4">
         <Button
-          class="grow-0" variant="text" severity="secondary" @click="() => {
-            mode = 'all fields'
-            editFieldValues = {}
-          }"
+          class="grow-0" variant="text" severity="secondary" @click="handleCancelButton"
         >
           Cancel
         </Button>

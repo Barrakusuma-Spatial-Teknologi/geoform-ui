@@ -11,14 +11,11 @@ const field = defineModel<FieldConfigWrapper>("field", {
   required: true,
 })
 
-const nestedFields = ref<FieldConfigSingularWrapper[]>([])
 const addFieldButtonRef = ref<HTMLDivElement>()
 
 watch(
   () => field.value.type,
   () => {
-    nestedFields.value = []
-
     if (field.value.type === FieldType.NESTED) {
       addNewField()
     }
@@ -36,18 +33,15 @@ watch(field.value, () => {
 
 function addNewField(): void {
   const key = generateLighterId()
-  nestedFields.value.push({
-    key,
-    name: "",
-    required: false,
-    type: FieldType.TEXT,
-    fieldConfig: {},
-    dirty: false,
-    strictChange: false,
-  })
 
   if (field.value.type === FieldType.NESTED) {
-    field.value.fields = nestedFields.value
+    field.value.fields.push({
+      key,
+      name: "",
+      required: false,
+      type: FieldType.TEXT,
+      fieldConfig: {},
+    })
   }
 
   nextTick()
@@ -59,17 +53,11 @@ onMounted(() => {
   }
 
   if (field.value.fields != null) {
-    for (const f of field.value.fields) {
-      nestedFields.value.push({
-        ...(f as FieldConfigSingularWrapper),
-        dirty: (f as FieldConfigSingularWrapper).dirty ?? false,
-        strictChange: (f as FieldConfigSingularWrapper).strictChange ?? false,
-      })
-    }
+    return
   }
-  else {
-    addNewField()
-  }
+
+  field.value.fields = []
+  addNewField()
 })
 </script>
 
@@ -102,14 +90,17 @@ onMounted(() => {
       />
       <label for="field-type">Type</label>
     </IftaLabel>
-    <template v-for="(_field, index) in nestedFields" :key="index">
-      <ProjectConfigFormFieldSingular
-        v-model:field="nestedFields[index]!" :field-options="fieldOptionsWithoutNestedType"
-        @remove="() => {
-          nestedFields.splice(index, 1)
-        }"
-      />
+    <template v-if="field.type === FieldType.NESTED">
+      <template v-for="(_field, index) in field.fields" :key="index">
+        <ProjectConfigFormFieldSingular
+          v-model:field="(field.fields[index]! as FieldConfigSingularWrapper)" :field-options="fieldOptionsWithoutNestedType"
+          @remove="() => {
+            (field as FieldConfigNested).fields.splice(index, 1)
+          }"
+        />
+      </template>
     </template>
+
     <div id="addFieldButton" ref="addFieldButtonRef" class="box-border px-2 py-1">
       <Button rounded severity="secondary" fluid @click="addNewField">
         Add new field

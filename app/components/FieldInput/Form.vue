@@ -102,17 +102,16 @@ function _isUuid(input: string): boolean {
 
 const formRef = ref<InstanceType<typeof PvForm>>()
 
-const numberOfItemPerNestedFields = ref<Record<string, number>>({})
+const nestedFieldsData = ref<Record<string, { values: Record<string, any>[], count: number }>>({})
 const addNewItemButtonRef = ref<HTMLDivElement>()
 const nestedFieldConfig = ref<FieldConfigNested[]>([])
-const nestedFieldValues = ref<Record<string, any>>({})
-const mode = ref<"all fields" | "nested fields">("all fields")
+const nestedEditVisible = ref<boolean>(false)
 const editFieldValues = ref<Record<string, any>>({})
 
 function addNewItem(field: FieldConfigNested) {
   nestedFieldConfig.value = []
   nestedFieldConfig.value.push(field)
-  mode.value = "nested fields"
+  nestedEditVisible.value = true
 }
 
 function addNestedFieldData(nestedFieldData: Record<string, any>, nestedItemKey: string) {
@@ -126,26 +125,26 @@ function addNestedFieldData(nestedFieldData: Record<string, any>, nestedItemKey:
       continue
     }
 
-    if (!nestedFieldValues.value[item.key]) {
-      nestedFieldValues.value[item.key] = []
+    if (!nestedFieldsData.value[item.key]) {
+      nestedFieldsData.value[item.key] = { values: [], count: 0 }
     }
 
-    const existingEntry = nestedFieldValues.value[item.key]
+    const existingEntry = nestedFieldsData.value[item.key]?.values
       .find((entry: Record<string, any>) => entry[nestedItemKey])
 
     if (existingEntry) {
       existingEntry[nestedItemKey] = nestedFieldData
     }
     else {
-      nestedFieldValues.value[item.key].push({ [nestedItemKey]: nestedFieldData })
-      numberOfItemPerNestedFields.value[item.key] = (numberOfItemPerNestedFields.value[item.key] || 0) + 1
+      nestedFieldsData.value[item.key]?.values.push({ [nestedItemKey]: nestedFieldData })
+      nestedFieldsData.value[item.key]!.count += 1
     }
   }
 }
 
 function deleteItem(fieldKey: string, index: number) {
-  nestedFieldValues.value[fieldKey].splice(index, 1)
-  numberOfItemPerNestedFields.value[fieldKey]! -= 1
+  nestedFieldsData.value[fieldKey]!.values.splice(index, 1)
+  nestedFieldsData.value[fieldKey]!.count -= 1
 }
 
 function editItem(field: FieldConfigNested, value: Record<string, any>) {
@@ -153,7 +152,11 @@ function editItem(field: FieldConfigNested, value: Record<string, any>) {
   editFieldValues.value = {}
   nestedFieldConfig.value.push(field)
   editFieldValues.value = value
-  mode.value = "nested fields"
+  nestedEditVisible.value = true
+}
+
+function changeFormMode(formMode: boolean) {
+  nestedEditVisible.value = formMode
 }
 
 async function save(e: FormSubmitEvent) {
@@ -166,7 +169,13 @@ async function save(e: FormSubmitEvent) {
       return
     }
 
-    if (numberOfItemPerNestedFields.value[field.key]! < field.fieldConfig.minItem) {
+    const data = nestedFieldsData.value[field.key]
+
+    if (!data) {
+      return
+    }
+
+    if (data.count < field.fieldConfig.minItem) {
       e.valid = false
     }
   }
@@ -200,7 +209,7 @@ async function save(e: FormSubmitEvent) {
       if (row.type === FieldType.NESTED) {
         for (const childRow of row.fields) {
           feature.data[childRow.key] = []
-          for (const data of nestedFieldValues.value[row.key]!) {
+          for (const data of nestedFieldsData.value[row.key]!.values) {
             const firstKey = Object.keys(data)[0]
             if (firstKey && data[firstKey]) {
               feature.data[childRow.key].push([data[firstKey][childRow.key]])
@@ -254,11 +263,6 @@ onActivated(async () => {
 onMounted(async () => {
   projectData = useProjectData(props.projectId)
   await resetFields()
-  for (const field of props.fields) {
-    if (field.type === FieldType.NESTED) {
-      numberOfItemPerNestedFields.value[field.key] = 0
-    }
-  }
 })
 
 onBeforeUnmount(() => {
@@ -270,7 +274,7 @@ onDeactivated(() => {
 </script>
 
 <template>
-  <template v-if="mode === 'all fields'">
+  <template v-if="!nestedEditVisible">
     <div class="box-border flex size-full flex-col rounded-lg bg-surface-100 p-4 dark:bg-surface-800">
       <div class="mb-5 grow-0 font-bold">
         Fill form
@@ -310,10 +314,14 @@ onDeactivated(() => {
                 </label>
               </div>
 
-              <div :class="numberOfItemPerNestedFields[field.key] !== 0 ? 'dark:bg-surface-600 p-3 rounded bg-surface-200' : ''">
-                <template v-if="nestedFieldValues[field.key] != null">
+              <div
+                :class="nestedFieldsData[field.key] && nestedFieldsData[field.key]!.count !== 0
+                  ? 'dark:bg-surface-600 p-3 rounded bg-surface-200'
+                  : ''"
+              >
+                <template v-if="nestedFieldsData[field.key] != null">
                   <li
-                    v-for="(value, index) in nestedFieldValues[field.key]"
+                    v-for="(value, index) in nestedFieldsData[field.key]?.values"
                     :key="index"
                     class="remove-required flex w-full space-x-2 "
                   >
@@ -352,7 +360,7 @@ onDeactivated(() => {
                         Edit
                       </Button>
                       <Button
-                        severity="secondary" class="w-1/2" variant="text" size="small" @click="deleteItem(field.key, index)"
+                        severity="secondary" class="w-1/2" variant="text" size="small" @click="deleteItem(field.key, Number(index))"
                       >
                         Delete
                       </Button>
@@ -360,7 +368,11 @@ onDeactivated(() => {
                   </li>
                 </template>
 
-                <div id="addNewItemButton" ref="addNewItemButtonRef" class="mt-2 box-border flex justify-center px-2 py-1" :class="numberOfItemPerNestedFields[field.key] === 0 ? 'border-dashed border-2' : ''">
+                <div
+                  id="addNewItemButton" ref="addNewItemButtonRef" class="mt-2 box-border flex justify-center px-2 py-1"
+                  :class="!nestedFieldsData[field.key] || nestedFieldsData[field.key]!.count === 0
+                    ? 'border-dashed border-2' : ''"
+                >
                   <Button rounded severity="secondary" class="w-2/3" @click="addNewItem(field)">
                     Add new item
                   </Button>
@@ -386,7 +398,12 @@ onDeactivated(() => {
     </div>
   </template>
   <template v-else>
-    <FormInputNested v-model:mode="mode" v-model:edit-field-values="editFieldValues" :nested-field="nestedFieldConfig" @add-nested-field-data="addNestedFieldData" />
+    <FormInputNested
+      v-model:edit-field-values="editFieldValues"
+      :nested-field="nestedFieldConfig"
+      @add-nested-field-data="addNestedFieldData"
+      @change-form-mode="changeFormMode"
+    />
   </template>
 </template>
 
