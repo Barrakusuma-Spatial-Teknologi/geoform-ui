@@ -84,12 +84,7 @@ export function createZodSchema(fields: FieldConfig[]) {
         return z.any()
       })
 
-    if (field.type === FieldType.NESTED) {
-      schema[field.key] = z.optional(fieldSchema)
-      return
-    }
-
-    schema[field.key] = field.required
+    schema[field.key] = field.required && field.type !== FieldType.NESTED
       ? fieldSchema
       : z.optional(fieldSchema)
   })

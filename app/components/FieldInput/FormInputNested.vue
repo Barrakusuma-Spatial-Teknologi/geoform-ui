@@ -1,24 +1,20 @@
 <script setup lang="ts">
-import type { NestedValue } from "./Form.vue"
-import type { FieldConfigNested } from "~/composables/project/model/project"
+import type { NestedEditValue, NestedItemValue } from "./Form.vue"
 import { type FormSubmitEvent, Form as PvForm } from "@primevue/forms"
 import { zodResolver } from "@primevue/forms/resolvers/zod"
 import { createZodSchema } from "~/components/FieldInput/form-validation"
 import FormInputSingular from "./FormInputSingular.vue"
 
 const props = defineProps<{
-  nestedField: FieldConfigNested[]
+  editValue: NestedEditValue
 }>()
 
 const emits = defineEmits<{
-  addNestedFieldData: [nestedFieldData: NestedValue, nestedItemKey: string]
-  changeFormMode: [isNestedMode: boolean]
+  addItemData: [nestedFieldData: NestedItemValue, nestedItemKey: string, index?: number]
+  closeForm: []
 }>()
 
-const editFieldValues = defineModel<Record<string, NestedValue>>("editFieldValues", {
-  required: false,
-})
-const validationSchema = ref(zodResolver(createZodSchema(props.nestedField[0]!.fields)))
+const validationSchema = ref(zodResolver(createZodSchema(props.editValue.config.fields)))
 const formRef = ref<InstanceType<typeof PvForm>>()
 const toast = useToast()
 function save(e: FormSubmitEvent) {
@@ -30,37 +26,35 @@ function save(e: FormSubmitEvent) {
     return
   }
 
-  emits("changeFormMode", false)
-  const nestedItemKey = generateLighterId()
-
-  if (!editFieldValues.value || Object.keys(editFieldValues.value).length === 0) {
-    emits("addNestedFieldData", e.values, nestedItemKey)
-    editFieldValues.value = {}
+  if (props.editValue.index !== undefined) {
+    emits("addItemData", e.values, props.editValue.config.key, props.editValue.index)
+    emits("closeForm")
     return
   }
 
-  emits("addNestedFieldData", e.values, Object.keys(editFieldValues.value)[0]!)
-  editFieldValues.value = {}
+  emits("addItemData", e.values, props.editValue.config.key)
+  emits("closeForm")
 }
 
 function handleCancelButton() {
-  emits("changeFormMode", false)
-  editFieldValues.value = {}
+  emits("closeForm")
 }
 
-const initialValues = computed(() => {
-  if (!editFieldValues.value) {
-    return {}
-  }
+const initialValues = ref<Record<string, any>>()
 
-  return { ...editFieldValues.value[Object.keys(editFieldValues.value)[0]!] }
-})
+watch(
+  () => props.editValue,
+  () => {
+    initialValues.value = props.editValue.index !== undefined ? props.editValue.item : {}
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
   <div class="box-border flex size-full flex-col rounded-lg bg-surface-100 p-4 dark:bg-surface-800">
-    <label class="text-sm" :class="[props.nestedField[0]?.required ? 'required' : '']">
-      {{ props.nestedField[0]?.name }}
+    <label class="text-sm" :class="[props.editValue?.config.required ? 'required' : '']">
+      {{ props.editValue?.config.name }}
     </label>
     <PvForm
       v-slot="$form"
@@ -70,10 +64,10 @@ const initialValues = computed(() => {
     >
       <ul class="box-border flex w-full grow basis-0 flex-col space-y-4 overflow-y-auto pb-8 pt-2">
         <li
-          v-for="(fieldChild) in props.nestedField[0]?.fields" :key="fieldChild.key"
-          :class="[fieldChild.required ? 'required' : '']"
+          v-for="(childField) in props.editValue?.config.fields" :key="childField.key"
+          :class="[childField.required ? 'required' : '']"
         >
-          <FormInputSingular :field="fieldChild" :form="$form" />
+          <FormInputSingular :field="childField" :form="$form" />
         </li>
       </ul>
 

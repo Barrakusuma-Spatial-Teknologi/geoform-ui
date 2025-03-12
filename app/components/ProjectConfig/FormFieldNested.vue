@@ -88,15 +88,19 @@ onMounted(() => {
       />
       <label for="field-type">Type</label>
     </IftaLabel>
+
     <template v-if="field.type === FieldType.NESTED">
-      <template v-for="(_field, index) in field.fields" :key="index">
-        <ProjectConfigFormFieldSingular
-          v-model:field="(field.fields[index]! as FieldConfigSingularWrapper)" :field-options="fieldOptionsWithoutNestedType"
-          @remove="() => {
-            (field as FieldConfigNested).fields.splice(index, 1)
-          }"
-        />
-      </template>
+      <div class="max-h-60 overflow-y-auto">
+        <template v-for="(_field, index) in field.fields" :key="index">
+          <ProjectConfigFormFieldSingular
+            v-model:field="(field.fields[index]! as FieldConfigSingularWrapper)"
+            :field-options="fieldOptionsWithoutNestedType"
+            @remove="() => {
+              (field as FieldConfigNested).fields.splice(index, 1)
+            }"
+          />
+        </template>
+      </div>
     </template>
 
     <div class="box-border px-2 py-1">
