@@ -6,7 +6,7 @@ import { createZodSchema } from "~/components/FieldInput/form-validation"
 import FormInputSingular from "./FormInputSingular.vue"
 
 const props = defineProps<{
-  editValue: NestedEditValue
+  itemValue: NestedEditValue
 }>()
 
 const emits = defineEmits<{
@@ -14,7 +14,7 @@ const emits = defineEmits<{
   closeForm: []
 }>()
 
-const validationSchema = ref(zodResolver(createZodSchema(props.editValue.config.fields)))
+const validationSchema = ref(zodResolver(createZodSchema(props.itemValue.config.fields)))
 const formRef = ref<InstanceType<typeof PvForm>>()
 const toast = useToast()
 function save(e: FormSubmitEvent) {
@@ -26,13 +26,13 @@ function save(e: FormSubmitEvent) {
     return
   }
 
-  if (props.editValue.index !== undefined) {
-    emits("addItemData", e.values, props.editValue.config.key, props.editValue.index)
+  if (props.itemValue.index !== undefined) {
+    emits("addItemData", e.values, props.itemValue.config.key, props.itemValue.index)
     emits("closeForm")
     return
   }
 
-  emits("addItemData", e.values, props.editValue.config.key)
+  emits("addItemData", e.values, props.itemValue.config.key)
   emits("closeForm")
 }
 
@@ -43,9 +43,9 @@ function handleCancelButton() {
 const initialValues = ref<Record<string, any>>()
 
 watch(
-  () => props.editValue,
+  () => props.itemValue,
   () => {
-    initialValues.value = props.editValue.index !== undefined ? props.editValue.item : {}
+    initialValues.value = props.itemValue.index !== undefined ? props.itemValue.item : {}
   },
   { immediate: true },
 )
@@ -53,8 +53,8 @@ watch(
 
 <template>
   <div class="box-border flex size-full flex-col rounded-lg bg-surface-100 p-4 dark:bg-surface-800">
-    <label class="text-sm" :class="[props.editValue?.config.required ? 'required' : '']">
-      {{ props.editValue?.config.name }}
+    <label class="text-sm" :class="[props.itemValue?.config.required ? 'required' : '']">
+      {{ props.itemValue?.config.name }}
     </label>
     <PvForm
       v-slot="$form"
@@ -64,7 +64,7 @@ watch(
     >
       <ul class="box-border flex w-full grow basis-0 flex-col space-y-4 overflow-y-auto pb-8 pt-2">
         <li
-          v-for="(childField) in props.editValue?.config.fields" :key="childField.key"
+          v-for="(childField) in props.itemValue?.config.fields" :key="childField.key"
           :class="[childField.required ? 'required' : '']"
         >
           <FormInputSingular :field="childField" :form="$form" />

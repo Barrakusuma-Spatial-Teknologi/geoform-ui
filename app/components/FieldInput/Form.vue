@@ -164,6 +164,7 @@ function closeNestedForm() {
   nestedEditValue.item = {}
   nestedEditValue.index = undefined
 }
+
 function formatItemValue(
   itemValue: NestedItemValue,
   checkboxOption?: Record<string, string>[],
@@ -411,7 +412,7 @@ onDeactivated(() => {
     </template>
     <template v-else>
       <FormInputNested
-        :edit-value="nestedEditValue"
+        :item-value="nestedEditValue"
         @add-item-data="addNestedFieldItemData"
         @close-form="closeNestedForm"
       />
