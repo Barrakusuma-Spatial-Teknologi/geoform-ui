@@ -41,7 +41,7 @@ onMounted(() => {
 <template>
   <div
     :id="`${field.key}_container`"
-    class="mb-4 box-border w-full space-y-2 rounded-lg bg-surface-300 px-4 pb-2 pt-4 dark:bg-surface-800"
+    class="mb-4 box-border w-full space-y-2 rounded-lg bg-surface-100 px-4 pb-2 pt-4 dark:bg-surface-800"
   >
     <IftaLabel fluid class="">
       <InputText :id="field!.key" v-model.lazy="field!.name" size="small" fluid />
@@ -125,9 +125,9 @@ onMounted(() => {
     <template
       v-if="field!.type !== FieldType.CHECKBOX && field!.type !== FieldType.BOOLEAN"
     >
-      <CommonPanel class="rounded-lg bg-surface-950">
+      <CommonPanel class="rounded-lg bg-surface-300/80 dark:bg-surface-950">
         <template #title>
-          <div class="text-sm">
+          <div class="text-sm text-surface-700 dark:text-surface-0">
             Advanced Configuration
           </div>
         </template>

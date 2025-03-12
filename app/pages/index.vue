@@ -162,13 +162,13 @@ async function exportGeoJSON() {
               </div>
 
               <div class="flex w-full items-center space-x-4 text-xs">
-                <div class="text-surface-400">
+                <div class="text-surface-800/60 dark:text-surface-400">
                   <UseTimeAgo v-slot="{ timeAgo }" :time="project.updatedAt ?? project.createdAt">
                     Last modified {{ timeAgo }}
                   </UseTimeAgo>
                 </div>
 
-                <div class="font-bold text-surface-400">
+                <div class="font-bold text-surface-800/60 dark:text-surface-400">
                   <template v-if="project.isCollaboration">
                     COLLABORATION
                   </template>

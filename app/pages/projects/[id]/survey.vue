@@ -15,7 +15,12 @@ import { useLayoutTitle } from "~/composables/layout"
 import { formatLabelExpression } from "~/composables/maplibre-helper/formatLabelExpression"
 import { onMapLoad } from "~/composables/maplibre-helper/onMapLoad"
 import { useDbTimeMachine } from "~/composables/project/db-time-machine"
-import { LayerDataType, type LayerStylePolygon, type ProjectLayer } from "~/composables/project/model/project-layer"
+import {
+  LayerDataType,
+  type LayerStylePolygon,
+  type LayerValidationConfig,
+  type ProjectLayer,
+} from "~/composables/project/model/project-layer"
 import { useProjectStore } from "~/composables/project/project"
 import { useProjectData } from "~/composables/project/project-data"
 import { useProjectLayer } from "~/composables/project/project-layer"
@@ -63,6 +68,7 @@ const projectData = useProjectData(selectedProject.value!.id)
 const projectLayers = ref<(Pick<ProjectLayer, "layerName" | "id" | "layerStyle"> & {
   visible: true
 })[]>([])
+const layerAsValidation: { mode: LayerValidationConfig["mode"], id: string, name: string }[] = []
 
 async function loadProjectDataToMap() {
   if (map == null) {
@@ -122,6 +128,34 @@ function showForm(coord?: {
     selectedCoordinate.value = {
       lng: coords.value.longitude,
       lat: coords.value.latitude,
+    }
+  }
+
+  for (const layer of layerAsValidation) {
+    const features = map.queryRenderedFeatures([selectedCoordinate.value.lng, selectedCoordinate.value.lat], {
+      layers: [layer.id],
+    })
+
+    if (features.length > 0 && layer.mode === "forbidden") {
+      toast.add({
+        severity: "error",
+        summary: "Invalid position",
+        detail: `Position must be outside of '${layer.name}'`,
+        life: 3000,
+        group: "bc",
+      })
+      return
+    }
+
+    if (features.length === 0 && layer.mode === "inside") {
+      toast.add({
+        severity: "error",
+        summary: "Invalid position",
+        detail: `Position must be inside '${layer.name}'`,
+        life: 3000,
+        group: "bc",
+      })
+      return
     }
   }
 
@@ -228,6 +262,7 @@ onBeforeUnmount(async () => {
 
         await timeMachine.backup((progress: ExportProgress) => {
           uiBlocker.setProgress((progress.completedTables / progress.totalTables) * 100)
+          return true
         })
       }
     }
@@ -342,6 +377,7 @@ onMounted(async () => {
             "line-width": layerStyle.lineWidth,
           },
         })
+
         if (layerStyle.labelField) {
           style.layers.push({
             id: `${layer.id}__label`,
@@ -355,6 +391,14 @@ onMounted(async () => {
               "text-size": 12,
               "text-font": ["Metropolis Regular"],
             },
+          })
+        }
+
+        if (l.validation && l.validation.mode !== "off") {
+          layerAsValidation.push({
+            mode: l.validation.mode,
+            id: layer.id,
+            name: layer.layerName,
           })
         }
       })
@@ -630,6 +674,10 @@ onMounted(async () => {
       <div class="box-border flex grow-0 justify-between space-x-4 px-6 py-4">
         <Button
           severity="primary" size="small" variant="text" @click="async () => {
+            if (selectedProject == null) {
+              return
+            }
+
             await submitDataCloud(selectedProject.id, toast)
           }"
         >
