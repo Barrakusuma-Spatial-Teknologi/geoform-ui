@@ -310,7 +310,7 @@ onDeactivated(() => {
                   {{ field.name }}
                 </label>
                 <label class="remove-required block text-xs">
-                  Minimal Item: {{ field.fieldConfig?.minItem }}
+                  Minimal Item: {{ field.fieldConfig?.minItem ?? 0 }}
                 </label>
               </div>
 
