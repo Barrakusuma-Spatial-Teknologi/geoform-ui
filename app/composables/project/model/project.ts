@@ -92,9 +92,12 @@ export interface FieldConfigImage extends FC<FieldType.IMAGE> {
 interface FieldConfigBoolean extends FC<FieldType.BOOLEAN> {
   fieldConfig?: Record<string, unknown>
 }
-interface FieldConfigNested extends FC<FieldType.NESTED> {
+
+export interface FieldConfigNested extends FC<FieldType.NESTED> {
   fields: FieldConfigSingular[]
-  fieldConfig?: Record<string, unknown>
+  fieldConfig?: {
+    minItem?: number
+  }
 }
 
 export type FieldConfigSingular =

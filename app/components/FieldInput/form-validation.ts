@@ -74,28 +74,24 @@ export function createZodSchema(fields: FieldConfig[]) {
       .with({ type: FieldType.CHECKBOX }, () => {
         return z.union([z.array(z.string()), z.string()])
       })
-      // eslint-disable-next-line unused-imports/no-unused-vars
-      .with({ type: FieldType.IMAGE }, ({ fieldConfig }) => {
+      .with({ type: FieldType.IMAGE }, () => {
         return z.string()
       })
       .with({ type: FieldType.BOOLEAN }, () => {
         return z.boolean()
       })
-      .with({ type: FieldType.NESTED }, ({ fields }) => {
-        return createZodSchema(fields)
-      })
       .otherwise((_o) => {
         return z.any()
       })
 
-    if (field.type === FieldType.NESTED && fieldSchema instanceof z.ZodObject) {
-      Object.assign(schema, fieldSchema.shape)
+    if (field.type === FieldType.NESTED) {
       schema[field.key] = z.optional(fieldSchema)
+      return
     }
-    else {
-      schema[field.key] = field.required ? fieldSchema : z.optional(fieldSchema)
-    }
-  })
 
+    schema[field.key] = field.required
+      ? fieldSchema
+      : z.optional(fieldSchema)
+  })
   return z.object(schema)
 }

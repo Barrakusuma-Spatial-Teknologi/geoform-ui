@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { FieldConfigSingularWrapper, FieldConfigWrapper } from "./formConfig"
-import { type FieldConfigCheckbox, fieldOptions, FieldType } from "~/composables/project/model/project"
+import { type FieldConfigCheckbox, type FieldConfigNested, fieldOptions, FieldType } from "~/composables/project/model/project"
 import { fieldOptionsWithoutNestedType } from "~/composables/project/model/project"
 
 const emits = defineEmits<{
@@ -13,10 +13,12 @@ const field = defineModel<FieldConfigWrapper>("field", {
 
 const nestedFields = ref<FieldConfigSingularWrapper[]>([])
 const addFieldButtonRef = ref<HTMLDivElement>()
+
 watch(
   () => field.value.type,
   () => {
     nestedFields.value = []
+
     if (field.value.type === FieldType.NESTED) {
       addNewField()
     }
@@ -27,9 +29,11 @@ watch(
     }
   },
 )
+
 watch(field.value, () => {
   field.value.dirty = true
 })
+
 function addNewField(): void {
   const key = generateLighterId()
   nestedFields.value.push({
@@ -48,6 +52,7 @@ function addNewField(): void {
 
   nextTick()
 }
+
 onMounted(() => {
   if (field.value.type !== FieldType.NESTED) {
     return
@@ -110,6 +115,33 @@ onMounted(() => {
         Add new field
       </Button>
     </div>
+    <CommonPanel class="rounded-lg bg-surface-950">
+      <template #title>
+        <div class="text-sm">
+          Advanced Configuration
+        </div>
+      </template>
+
+      <div class="box-border w-full px-2 pb-2">
+        <template v-if="field.type === FieldType.NESTED">
+          <InputGroup>
+            <IftaLabel>
+              <InputNumber
+                size="small"
+                locale="id-ID"
+                :default-value="field?.fieldConfig?.minItem"
+                @value-change="(v) => {
+                  if ('fieldConfig' in field) {
+                    (field.fieldConfig as NonNullable<FieldConfigNested['fieldConfig']>).minItem = v
+                  }
+                }"
+              />
+              <label>Min Item</label>
+            </IftaLabel>
+          </InputGroup>
+        </template>
+      </div>
+    </CommonPanel>
     <div class="flex w-full justify-between border-t border-surface-200 dark:border-surface-700">
       <div class="flex items-center gap-2  text-sm">
         <Checkbox :id="`${field.key}_required`" v-model="field!.required" binary />
