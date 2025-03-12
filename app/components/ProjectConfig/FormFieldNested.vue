@@ -11,8 +11,6 @@ const field = defineModel<FieldConfigWrapper>("field", {
   required: true,
 })
 
-const addFieldButtonRef = ref<HTMLDivElement>()
-
 watch(
   () => field.value.type,
   () => {
@@ -101,7 +99,7 @@ onMounted(() => {
       </template>
     </template>
 
-    <div id="addFieldButton" ref="addFieldButtonRef" class="box-border px-2 py-1">
+    <div class="box-border px-2 py-1">
       <Button rounded severity="secondary" fluid @click="addNewField">
         Add new field
       </Button>

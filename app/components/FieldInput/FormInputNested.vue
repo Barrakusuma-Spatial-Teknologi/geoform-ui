@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { NestedValue } from "./Form.vue"
 import type { FieldConfigNested } from "~/composables/project/model/project"
 import { type FormSubmitEvent, Form as PvForm } from "@primevue/forms"
 import { zodResolver } from "@primevue/forms/resolvers/zod"
@@ -10,11 +11,11 @@ const props = defineProps<{
 }>()
 
 const emits = defineEmits<{
-  addNestedFieldData: [nestedFieldData: Record<string, any>, nestedItemKey: string]
+  addNestedFieldData: [nestedFieldData: NestedValue, nestedItemKey: string]
   changeFormMode: [isNestedMode: boolean]
 }>()
 
-const editFieldValues = defineModel<Record<string, any>>("editFieldValues", {
+const editFieldValues = defineModel<Record<string, NestedValue>>("editFieldValues", {
   required: false,
 })
 const validationSchema = ref(zodResolver(createZodSchema(props.nestedField[0]!.fields)))

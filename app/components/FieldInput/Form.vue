@@ -102,11 +102,20 @@ function _isUuid(input: string): boolean {
 
 const formRef = ref<InstanceType<typeof PvForm>>()
 
-const nestedFieldsData = ref<Record<string, { values: Record<string, any>[], count: number }>>({})
+export interface NestedValue {
+  [key: string]: string | number | boolean | Date
+}
+
+interface NestedField {
+  values: Record<string, NestedValue>[]
+  count: number
+}
+
+const nestedFieldsData = ref<Record<string, NestedField>>({})
 const addNewItemButtonRef = ref<HTMLDivElement>()
 const nestedFieldConfig = ref<FieldConfigNested[]>([])
 const nestedEditVisible = ref<boolean>(false)
-const editFieldValues = ref<Record<string, any>>({})
+const editFieldValues = ref<Record<string, NestedValue>>({})
 
 function addNewItem(field: FieldConfigNested) {
   nestedFieldConfig.value = []
@@ -114,7 +123,7 @@ function addNewItem(field: FieldConfigNested) {
   nestedEditVisible.value = true
 }
 
-function addNestedFieldData(nestedFieldData: Record<string, any>, nestedItemKey: string) {
+function addNestedFieldData(nestedFieldData: NestedValue, nestedItemKey: string) {
   for (const item of props.fields) {
     if (item.type !== FieldType.NESTED) {
       continue
@@ -130,7 +139,7 @@ function addNestedFieldData(nestedFieldData: Record<string, any>, nestedItemKey:
     }
 
     const existingEntry = nestedFieldsData.value[item.key]?.values
-      .find((entry: Record<string, any>) => entry[nestedItemKey])
+      .find((entry: Record<string, NestedValue>) => entry[nestedItemKey])
 
     if (existingEntry) {
       existingEntry[nestedItemKey] = nestedFieldData
@@ -147,7 +156,7 @@ function deleteItem(fieldKey: string, index: number) {
   nestedFieldsData.value[fieldKey]!.count -= 1
 }
 
-function editItem(field: FieldConfigNested, value: Record<string, any>) {
+function editItem(field: FieldConfigNested, value: Record<string, NestedValue>) {
   nestedFieldConfig.value = []
   editFieldValues.value = {}
   nestedFieldConfig.value.push(field)
@@ -331,12 +340,12 @@ onDeactivated(() => {
                           <InputText
                             fluid readonly
                             :value="
-                              String(value[Object.keys(value)[0]!]?.[Object.keys(value[Object.keys(value)[0]!])[0]!],
+                              String(value[Object.keys(value)[0]!]?.[Object.keys(value[Object.keys(value)[0]!]!)[0]!],
                               )
                                 ?.split(',')
                                 .map(id =>
                                   (field.fields[0] as FieldConfigCheckbox)?.fieldConfig?.options?.find(
-                                    (item: Record<string, any>) => item.key === id,
+                                    (item: NestedValue) => item.key === id,
                                   )?.value || '',
                                 )
                                 .join(',')
@@ -346,11 +355,11 @@ onDeactivated(() => {
                         </IftaLabel>
                       </template>
                       <template v-else-if="field.fields[0]?.type === FieldType.IMAGE">
-                        <Image :src="value[Object.keys(value)[0]!][Object.keys(value[Object.keys(value)[0]!])[0]!]" />
+                        <Image :src="value[Object.keys(value)[0]!]![Object.keys(value[Object.keys(value)[0]!]!)[0]!]" />
                       </template>
                       <template v-else>
                         <IftaLabel>
-                          <InputText fluid readonly :value="value[Object.keys(value)[0]!][Object.keys(value[Object.keys(value)[0]!])[0]!]" />
+                          <InputText fluid readonly :value="value[Object.keys(value)[0]!]![Object.keys(value[Object.keys(value)[0]!]!)[0]!]" />
                           <label>{{ field.fields[0]?.name }}</label>
                         </IftaLabel>
                       </template>
