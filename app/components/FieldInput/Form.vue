@@ -58,7 +58,7 @@ async function resetFields() {
   imageOriginalKey = {}
   fieldValues.value = await Promise.all(
     props.fields.map(async (field) => {
-      let value = get<Record<string, undefined | string | boolean | number | Date>>(data ?? {}, `data.data.${field.key}`)
+      let value = get<Record<string, undefined | string | boolean | number | Date | NestedItemValue[]>>(data ?? {}, `data.data.${field.key}`)
       if (field.type === FieldType.IMAGE && value != null) {
         const imageKey = String(value)
         value = await projectData.getImage(value as string)
@@ -78,6 +78,12 @@ async function resetFields() {
 
       if (field.type === FieldType.DATE && value != null) {
         value = new Date(value as string)
+      }
+
+      if (field.type === FieldType.NESTED && value != null) {
+        for (const valueItem of (value as unknown as NestedItemValue[])) {
+          nestedFieldsData.value[field.key]?.push(valueItem)
+        }
       }
 
       init[field.key] = value
