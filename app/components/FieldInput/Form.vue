@@ -1,11 +1,14 @@
 <script setup lang="ts">
+import type { NestedEditValue, NestedItemValue } from "./type"
 import type { ProjectDataFeature } from "~/composables/project/model/project-data"
 import { type FormSubmitEvent, Form as PvForm } from "@primevue/forms"
 import { zodResolver } from "@primevue/forms/resolvers/zod"
 import { get } from "es-toolkit/compat"
 import { createZodSchema } from "~/components/FieldInput/form-validation"
-import { type FieldConfig, FieldType } from "~/composables/project/model/project"
+import { type FieldConfig, type FieldConfigNested, FieldType } from "~/composables/project/model/project"
 import { useProjectData } from "~/composables/project/project-data"
+import FormInputNested from "./FormInputNested.vue"
+import FormInputSingular from "./FormInputSingular.vue"
 
 const props = defineProps<{
   projectId: string
@@ -43,6 +46,8 @@ let projectData!: ReturnType<typeof useProjectData>
 
 let imageOriginalKey: Record<string, string> = {}
 
+const nestedFieldsData = ref<Record<string, NestedItemValue[]>>({})
+
 async function resetFields() {
   const data = props.projectDataId != null ? await projectData.getById(props.projectDataId) : {}
   const init: Record<string, any> = {}
@@ -50,7 +55,7 @@ async function resetFields() {
   imageOriginalKey = {}
   fieldValues.value = await Promise.all(
     props.fields.map(async (field) => {
-      let value = get<Record<string, undefined | string | boolean | number | Date>>(data ?? {}, `data.data.${field.key}`)
+      let value = get<Record<string, undefined | string | boolean | number | Date | NestedItemValue[]>>(data ?? {}, `data.data.${field.key}`)
       if (field.type === FieldType.IMAGE && value != null) {
         const imageKey = String(value)
         value = await projectData.getImage(value as string)
@@ -70,6 +75,12 @@ async function resetFields() {
 
       if (field.type === FieldType.DATE && value != null) {
         value = new Date(value as string)
+      }
+
+      if (field.type === FieldType.NESTED && value != null) {
+        for (const valueItem of (value as NestedItemValue[])) {
+          nestedFieldsData.value[field.key]?.push(valueItem)
+        }
       }
 
       init[field.key] = value
@@ -100,6 +111,88 @@ function _isUuid(input: string): boolean {
 
 const formRef = ref<InstanceType<typeof PvForm>>()
 
+const nestedEditValue = reactive<NestedEditValue>({
+  item: undefined,
+  config: {} as FieldConfigNested,
+  visible: false,
+  index: undefined,
+})
+
+function addNewItem(field: FieldConfigNested) {
+  nestedEditValue.config = field
+  nestedEditValue.visible = true
+}
+
+function addNestedFieldItemData(
+  nestedItemData: NestedItemValue,
+  nestedItemKey: string,
+  nestedItemIndex?: number,
+) {
+  if (!nestedFieldsData.value[nestedItemKey]) {
+    return
+  }
+
+  if (nestedItemIndex === undefined) {
+    nestedFieldsData.value[nestedItemKey].push(nestedItemData)
+    closeNestedForm()
+    return
+  }
+
+  nestedFieldsData.value[nestedItemKey][nestedItemIndex] = nestedItemData
+  closeNestedForm()
+}
+
+function deleteItem(fieldKey: string, index: number) {
+  nestedFieldsData.value[fieldKey]!.splice(index, 1)
+}
+
+function editItem(
+  fieldConfig: FieldConfigNested,
+  value: NestedItemValue,
+  itemIndex: number,
+) {
+  nestedEditValue.config = fieldConfig
+  nestedEditValue.item = value
+  nestedEditValue.index = itemIndex
+  nestedEditValue.visible = true
+}
+
+function closeNestedForm() {
+  nestedEditValue.visible = false
+  nestedEditValue.item = {}
+  nestedEditValue.index = undefined
+}
+
+function formatItemValue(
+  itemValue: NestedItemValue,
+  checkboxOption?: Record<string, string>[],
+) {
+  const firstKey = Object.keys(itemValue)[0]
+
+  if (!firstKey) {
+    return
+  }
+
+  const value = itemValue[firstKey]
+
+  if (!checkboxOption) {
+    return value
+  }
+
+  let valueText = ""
+
+  if (Array.isArray(value)) {
+    valueText = value
+      .map((v) => checkboxOption.find((o) => o.key === v)?.value || "")
+      .join(", ")
+
+    return valueText
+  }
+
+  valueText = checkboxOption.find((o) => o.key === value)?.value || ""
+  return valueText
+}
+
 async function save(e: FormSubmitEvent) {
   if (!e.valid) {
     toast.add({
@@ -121,6 +214,23 @@ async function save(e: FormSubmitEvent) {
     const projectDataId = props.projectDataId ?? generateId()
     for (const row of props.fields) {
       const rowValue = e.values[row.key] as undefined | string | number | boolean | Date | string[]
+
+      if (row.type === FieldType.NESTED) {
+        const minimalItem = row.fieldConfig?.minItem
+
+        for (const [key, value] of Object.entries(nestedFieldsData.value)) {
+          if (minimalItem && value.length < minimalItem) {
+            e.valid = false
+            toast.add({
+              severity: "error",
+              summary: `Minimal Item for ${row.name} is ${minimalItem}`,
+            })
+            return
+          }
+          feature.data[key] = value
+        }
+        continue
+      }
 
       if (row.type === FieldType.IMAGE && rowValue != null) {
         feature.data[row.key] = await projectData.upsertImage(e.values[row.key]!, projectDataId, get(imageOriginalKey, row.key))
@@ -171,6 +281,12 @@ onActivated(async () => {
   await resetFields()
 })
 onMounted(async () => {
+  for (const field of props.fields) {
+    if (field.type === FieldType.NESTED) {
+      nestedFieldsData.value[field.key] = []
+    }
+  }
+
   projectData = useProjectData(props.projectId)
   await resetFields()
 })
@@ -184,169 +300,131 @@ onDeactivated(() => {
 </script>
 
 <template>
-  <div class="box-border flex size-full flex-col rounded-lg bg-surface-100 p-4 dark:bg-surface-800">
-    <div class="mb-5 grow-0 font-bold">
-      Fill form
-    </div>
+  <TransitionFade>
+    <template v-if="!nestedEditValue.visible">
+      <div class="box-border flex size-full flex-col rounded-lg bg-surface-100 p-4 dark:bg-surface-800">
+        <div class="mb-5 grow-0 font-bold">
+          Fill form
+        </div>
 
-    <PvForm
-      v-if="initialValues != null" v-slot="$form" ref="formRef" class="flex w-full grow flex-col"
-      :initial-values="initialValues"
-      :resolver="validationSchema"
-      @submit="save"
-    >
-      <ul class="box-border flex w-full grow basis-0 flex-col space-y-4 overflow-y-auto pb-8 pt-2">
-        <li>
-          <div class="text-sm text-surface-400">
-            Location at
-          </div>
-
-          <div>
-            {{ convertDDToDMS(props.coordinate.lng) }} ; {{ convertDDToDMS(props.coordinate.lat) }}
-          </div>
-        </li>
-
-        <li
-          v-for="field in props.fields" :key="field.key" class="w-full space-y-2"
-          :class="[field.required ? 'required' : '']"
+        <PvForm
+          v-if="initialValues != null" v-slot="$form" ref="formRef" class="flex w-full grow flex-col"
+          :initial-values="initialValues"
+          :resolver="validationSchema"
+          @submit="save"
         >
-          <template v-if="field.type === FieldType.TEXT">
-            <div class="space-y-1">
-              <label class="text-sm" :for="field.key">
-                {{ field.name }}
-              </label>
-              <InputText :id="field.key" :name="field.key" fluid />
-              <Message v-if="$form[field.key]?.invalid" class="h-5" severity="error" size="small" variant="simple">
-                {{ $form[field.key]?.error?.message }}
-              </Message>
-            </div>
-          </template>
-          <template v-else-if="field.type === FieldType.NUMBER">
-            <div class="space-y-1">
-              <label class="text-sm" :for="field.key">
-                {{ field.name }}
-              </label>
-              <InputNumber
-                :id="field.key" :name="field.key" locale="id-ID"
-                :min-fraction-digits="(field?.fieldConfig?.isFloat ?? false) ? 1 : 0"
-                :max-fraction-digits="(field?.fieldConfig?.isFloat ?? false) ? 10 : 1"
-                fluid
-              />
-              <Message v-if="$form[field.key]?.invalid" severity="error" size="small" variant="simple">
-                {{ $form[field.key]?.error?.message }}
-              </Message>
-            </div>
-          </template>
-
-          <template v-else-if="field.type === FieldType.DATE">
-            <div class="space-y-1">
-              <label class="text-sm" :for="field.key">
-                {{ field.name }}
-              </label>
-              <DatePicker :id="field.key" :name="field.key" fluid date-format="dd/mm/yy" />
-
-              <Message v-if="$form[field.key]?.invalid" severity="error" size="small" variant="simple">
-                {{ $form[field.key]?.error?.message }}
-              </Message>
-            </div>
-          </template>
-
-          <template v-else-if="field.type === FieldType.IMAGE">
-            <div class="space-y-1">
-              <label class="text-sm" :for="field.key">
-                {{ field.name }}
-              </label>
-              <FormField v-slot="$field" :name="field.key" :initial-value="$form[field.key]?.value">
-                <FieldInputImage
-                  :id="field.key"
-                  :default-value="$form[field.key]?.value"
-                  :config="field.fieldConfig"
-                  :prime-field="$field"
-                  @update:image="(value) => {
-                    // @ts-expect-error fast bypass
-                    $field.onInput({ data: value, value } as InputEvent)
-                  }"
-                />
-
-                <Message v-if="$form[field.key]?.invalid" severity="error" size="small" variant="simple">
-                  {{ $form[field.key]?.error?.message }}
-                </Message>
-              </FormField>
-            </div>
-          </template>
-
-          <template v-else-if="field.type === FieldType.CHECKBOX">
-            <div class="space-y-1">
-              <label class="text-sm" :for="field.key">
-                {{ field.name }}
-              </label>
-              <Listbox
-                v-if="(field.fieldConfig?.options ?? []).length <= 4"
-                :id="field.key" :name="field.key"
-                :multiple="field.fieldConfig?.multiple ?? true"
-                :options="field.fieldConfig?.options ?? []" option-label="value" option-value="key" class="w-full"
-                fluid
-              />
-              <MultiSelect
-                v-else-if="field.fieldConfig?.multiple ?? true"
-                :id="field.key" :name="field.key"
-                filter
-                :options="field.fieldConfig?.options ?? []"
-                option-label="value"
-                option-value="key"
-                class="w-full"
-                fluid
-              />
-              <Select
-                v-else
-                :id="field.key" :name="field.key"
-                filter
-                :options="field.fieldConfig?.options ?? []"
-                option-label="value"
-                option-value="key"
-                class="w-full"
-                fluid
-              />
-
-              <Message v-if="$form[field.key]?.invalid" severity="error" size="small" variant="simple">
-                {{ $form[field.key]?.error?.message }}
-              </Message>
-            </div>
-          </template>
-
-          <template v-else-if="field.type === FieldType.BOOLEAN">
-            <div class="space-y-1">
-              <div class="flex items-center gap-2">
-                <Checkbox :id="field.key" :name="field.key" binary />
-                <label :for="field.key"> {{ field.name }} </label>
+          <ul class="box-border flex w-full grow basis-0 flex-col space-y-4 overflow-y-auto pb-8 pt-2">
+            <li>
+              <div class="text-sm text-surface-400">
+                Location at
               </div>
-              <Message v-if="$form[field.key]?.invalid" severity="error" size="small" variant="simple">
-                {{ $form[field.key]?.error?.message }}
-              </Message>
-            </div>
-          </template>
-        </li>
-      </ul>
 
-      <div class="flex w-full justify-between gap-4">
-        <Button
-          class="grow-0" variant="text" severity="secondary" @click="() => {
-            emits('close')
-          }"
-        >
-          Cancel
-        </Button>
-        <Button class="grow font-bold" type="submit">
-          Save
-        </Button>
+              <div>
+                {{ convertDDToDMS(props.coordinate.lng) }} ; {{ convertDDToDMS(props.coordinate.lat) }}
+              </div>
+            </li>
+
+            <li
+              v-for="(field) in props.fields" :key="field.key" class="w-full space-y-2"
+              :class="[field.required ? 'required' : '']"
+            >
+              <template v-if="field.type !== FieldType.NESTED">
+                <FormInputSingular :field="field" :form="$form" />
+              </template>
+              <template v-else>
+                <label class="text-sm">
+                  {{ field.name }}
+                </label>
+                <template v-if="nestedFieldsData[field.key] != null">
+                  <div
+                    :class="nestedFieldsData[field.key]?.length !== 0
+                      ? 'dark:bg-surface-700 p-3 rounded bg-surface-200'
+                      : ''"
+                  >
+                    <li
+                      v-for="(value, nestedItemIndex) in nestedFieldsData[field.key]"
+                      :key="nestedItemIndex"
+                      class="remove-required flex w-full space-x-2 "
+                    >
+                      <div class="w-2/3 rounded ">
+                        <IftaLabel>
+                          <label>{{ field.fields[0]?.name }}</label>
+                          <template v-if="field.fields[0]?.type === FieldType.CHECKBOX">
+                            <InputText
+                              fluid readonly :value="formatItemValue(value, field.fields[0].fieldConfig.options)"
+                            />
+                          </template>
+                          <template v-else-if="field.fields[0]?.type === FieldType.IMAGE">
+                            <Image :src="formatItemValue(value)" />
+                          </template>
+                          <template v-else>
+                            <InputText fluid readonly :value="formatItemValue(value)" />
+                          </template>
+                        </IftaLabel>
+                      </div>
+                      <div class="flex w-1/3 justify-around space-x-1 ">
+                        <Button severity="secondary" class="w-1/2" variant="text" size="small" @click="editItem(field, value, Number(nestedItemIndex))">
+                          <i class="i-[solar--pen-linear] text-lg" />
+                        </Button>
+                        <Button
+                          severity="secondary" class="w-1/2" variant="text" size="small" @click="deleteItem(field.key, Number(nestedItemIndex))"
+                        >
+                          <i class="i-[solar--trash-bin-2-linear] text-lg" />
+                        </Button>
+                      </div>
+                    </li>
+                  </div>
+                </template>
+
+                <div
+                  class="mt-2 box-border flex justify-center px-2 py-1"
+                  :class="nestedFieldsData[field.key]?.length === 0
+                    ? 'border-dashed border-2' : ''"
+                >
+                  <Button rounded severity="secondary" class="w-2/3 text-xs" @click="addNewItem(field)">
+                    Add new item
+                  </Button>
+                </div>
+              </template>
+            </li>
+          </ul>
+
+          <div class="flex w-full justify-between gap-4">
+            <Button
+              class="grow-0" variant="text" severity="secondary" @click="() => {
+                emits('close')
+              }"
+            >
+              Cancel
+            </Button>
+            <Button class="grow font-bold" type="submit">
+              Save
+            </Button>
+          </div>
+        </PvForm>
       </div>
-    </PvForm>
-  </div>
+    </template>
+    <template v-else>
+      <FormInputNested
+        :item-value="nestedEditValue"
+        @add-item-data="addNestedFieldItemData"
+        @close="closeNestedForm"
+      />
+    </template>
+  </TransitionFade>
 </template>
 
 <style scoped>
 li.required label:after {
   @apply text-red-400;
   content: " *";
+}
+
+.remove-required::after {
+  content: none !important;
+}
+
+li.remove-required label:after {
+  content: none;
 }
 </style>

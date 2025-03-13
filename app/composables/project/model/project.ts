@@ -29,7 +29,16 @@ export const fieldOptions: FieldType[] = [
   FieldType.CHECKBOX,
   FieldType.IMAGE,
   FieldType.BOOLEAN,
-  // FieldType.NESTED,
+  FieldType.NESTED,
+]
+
+export const fieldOptionsWithoutNestedType: Exclude<FieldType, FieldType.NESTED>[] = [
+  FieldType.TEXT,
+  FieldType.NUMBER,
+  FieldType.DATE,
+  FieldType.CHECKBOX,
+  FieldType.IMAGE,
+  FieldType.BOOLEAN,
 ]
 
 export const FieldOptionSearchable: FieldType[] = [
@@ -91,9 +100,12 @@ export interface FieldConfigImage extends FC<FieldType.IMAGE> {
 interface FieldConfigBoolean extends FC<FieldType.BOOLEAN> {
   fieldConfig?: Record<string, unknown>
 }
-interface FieldConfigNested extends FC<FieldType.NESTED> {
+
+export interface FieldConfigNested extends FC<FieldType.NESTED> {
   fields: FieldConfigSingular[]
-  fieldConfig?: Record<string, unknown>
+  fieldConfig?: {
+    minItem?: number
+  }
 }
 
 export type FieldConfigSingular =

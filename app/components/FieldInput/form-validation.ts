@@ -74,7 +74,7 @@ export function createZodSchema(fields: FieldConfig[]) {
       .with({ type: FieldType.CHECKBOX }, () => {
         return z.union([z.array(z.string()), z.string()])
       })
-      .with({ type: FieldType.IMAGE }, ({ fieldConfig }) => {
+      .with({ type: FieldType.IMAGE }, () => {
         return z.string()
       })
       .with({ type: FieldType.BOOLEAN }, () => {
@@ -84,7 +84,7 @@ export function createZodSchema(fields: FieldConfig[]) {
         return z.any()
       })
 
-    schema[field.key] = field.required
+    schema[field.key] = field.required && field.type !== FieldType.NESTED
       ? fieldSchema
       : z.optional(fieldSchema)
   })
