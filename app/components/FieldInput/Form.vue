@@ -349,7 +349,7 @@ onDeactivated(() => {
                       :key="nestedItemIndex"
                       class="remove-required flex w-full space-x-2 "
                     >
-                      <div class="w-2/3 rounded">
+                      <div class="w-2/3 rounded ">
                         <template v-if="field.fields[0]?.type === FieldType.CHECKBOX">
                           <IftaLabel>
                             <InputText
@@ -368,7 +368,7 @@ onDeactivated(() => {
                           </IftaLabel>
                         </template>
                       </div>
-                      <div class="mt-2 flex w-1/3 justify-around space-x-1">
+                      <div class="flex w-1/3 justify-around space-x-1 ">
                         <Button severity="secondary" class="w-1/2" variant="text" size="small" @click="editItem(field, value, Number(nestedItemIndex))">
                           <i class="i-[solar--pen-linear] text-lg" />
                         </Button>
