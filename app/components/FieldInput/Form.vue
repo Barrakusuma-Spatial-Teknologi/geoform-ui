@@ -81,7 +81,7 @@ async function resetFields() {
       }
 
       if (field.type === FieldType.NESTED && value != null) {
-        for (const valueItem of (value as unknown as NestedItemValue[])) {
+        for (const valueItem of (value as NestedItemValue[])) {
           nestedFieldsData.value[field.key]?.push(valueItem)
         }
       }
