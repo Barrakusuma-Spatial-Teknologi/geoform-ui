@@ -45,6 +45,12 @@ let projectData!: ReturnType<typeof useProjectData>
 
 let imageOriginalKey: Record<string, string> = {}
 
+export interface NestedItemValue {
+  [key: string]: string | number | boolean | Date
+}
+
+const nestedFieldsData = ref<Record<string, NestedItemValue[]>>({})
+
 async function resetFields() {
   const data = props.projectDataId != null ? await projectData.getById(props.projectDataId) : {}
   const init: Record<string, any> = {}
@@ -101,12 +107,6 @@ function _isUuid(input: string): boolean {
 }
 
 const formRef = ref<InstanceType<typeof PvForm>>()
-
-export interface NestedItemValue {
-  [key: string]: string | number | boolean | Date
-}
-
-const nestedFieldsData = ref<Record<string, NestedItemValue[]>>({})
 
 export interface NestedEditValue {
   item?: NestedItemValue
@@ -229,9 +229,9 @@ async function save(e: FormSubmitEvent) {
             })
             return
           }
-
           feature.data[key] = value
         }
+        continue
       }
 
       if (row.type === FieldType.IMAGE && rowValue != null) {
@@ -283,14 +283,14 @@ onActivated(async () => {
   await resetFields()
 })
 onMounted(async () => {
-  projectData = useProjectData(props.projectId)
-  await resetFields()
-
   for (const field of props.fields) {
     if (field.type === FieldType.NESTED) {
       nestedFieldsData.value[field.key] = []
     }
   }
+
+  projectData = useProjectData(props.projectId)
+  await resetFields()
 })
 
 onBeforeUnmount(() => {
@@ -302,7 +302,7 @@ onDeactivated(() => {
 </script>
 
 <template>
-  <TransitionFade mode="out-in">
+  <TransitionFade>
     <template v-if="!nestedEditValue.visible">
       <div class="box-border flex size-full flex-col rounded-lg bg-surface-100 p-4 dark:bg-surface-800">
         <div class="mb-5 grow-0 font-bold">
@@ -337,7 +337,6 @@ onDeactivated(() => {
                 <label class="text-sm">
                   {{ field.name }}
                 </label>
-
                 <template v-if="nestedFieldsData[field.key] != null">
                   <div
                     :class="nestedFieldsData[field.key]?.length !== 0
