@@ -40,15 +40,6 @@ function handleCancelButton() {
   emits("closeForm")
 }
 
-// const initialValues = ref<Record<string, any>>()
-
-// watch(
-//   () => props.itemValue,
-//   () => {
-//     initialValues.value = props.itemValue.index !== undefined ? props.itemValue.item : {}
-//   },
-//   { immediate: true },
-// )
 const initialValues = computed(() => {
   return props.itemValue.index !== undefined ? props.itemValue.item : {}
 })
