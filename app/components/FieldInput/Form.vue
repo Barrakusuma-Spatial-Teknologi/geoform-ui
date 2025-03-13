@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { NestedEditValue, NestedItemValue } from "./type"
 import type { ProjectDataFeature } from "~/composables/project/model/project-data"
 import { type FormSubmitEvent, Form as PvForm } from "@primevue/forms"
 import { zodResolver } from "@primevue/forms/resolvers/zod"
@@ -44,10 +45,6 @@ const watchField = watchPausable(fieldValues, () => {
 let projectData!: ReturnType<typeof useProjectData>
 
 let imageOriginalKey: Record<string, string> = {}
-
-export interface NestedItemValue {
-  [key: string]: string | number | boolean | Date
-}
 
 const nestedFieldsData = ref<Record<string, NestedItemValue[]>>({})
 
@@ -113,13 +110,6 @@ function _isUuid(input: string): boolean {
 }
 
 const formRef = ref<InstanceType<typeof PvForm>>()
-
-export interface NestedEditValue {
-  item?: NestedItemValue
-  config: FieldConfigNested
-  visible: boolean
-  index?: number
-}
 
 const nestedEditValue = reactive<NestedEditValue>({
   item: undefined,

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { NestedEditValue, NestedItemValue } from "./Form.vue"
+import type { NestedEditValue, NestedItemValue } from "./type"
 import { type FormSubmitEvent, Form as PvForm } from "@primevue/forms"
 import { zodResolver } from "@primevue/forms/resolvers/zod"
 import { createZodSchema } from "~/components/FieldInput/form-validation"
