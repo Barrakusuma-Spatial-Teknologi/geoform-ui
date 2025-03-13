@@ -144,10 +144,12 @@ function addNestedFieldItemData(
 
   if (nestedItemIndex === undefined) {
     nestedFieldsData.value[nestedItemKey].push(nestedItemData)
+    closeNestedForm()
     return
   }
 
   nestedFieldsData.value[nestedItemKey][nestedItemIndex] = nestedItemData
+  closeNestedForm()
 }
 
 function deleteItem(fieldKey: string, index: number) {
@@ -355,23 +357,20 @@ onDeactivated(() => {
                       class="remove-required flex w-full space-x-2 "
                     >
                       <div class="w-2/3 rounded ">
-                        <template v-if="field.fields[0]?.type === FieldType.CHECKBOX">
-                          <IftaLabel>
+                        <IftaLabel>
+                          <label>{{ field.fields[0]?.name }}</label>
+                          <template v-if="field.fields[0]?.type === FieldType.CHECKBOX">
                             <InputText
                               fluid readonly :value="formatItemValue(value, field.fields[0].fieldConfig.options)"
                             />
-                            <label>{{ field.fields[0]?.name }}</label>
-                          </IftaLabel>
-                        </template>
-                        <template v-else-if="field.fields[0]?.type === FieldType.IMAGE">
-                          <Image :src="formatItemValue(value)" />
-                        </template>
-                        <template v-else>
-                          <IftaLabel>
+                          </template>
+                          <template v-else-if="field.fields[0]?.type === FieldType.IMAGE">
+                            <Image :src="formatItemValue(value)" />
+                          </template>
+                          <template v-else>
                             <InputText fluid readonly :value="formatItemValue(value)" />
-                            <label>{{ field.fields[0]?.name }}</label>
-                          </IftaLabel>
-                        </template>
+                          </template>
+                        </IftaLabel>
                       </div>
                       <div class="flex w-1/3 justify-around space-x-1 ">
                         <Button severity="secondary" class="w-1/2" variant="text" size="small" @click="editItem(field, value, Number(nestedItemIndex))">
@@ -419,7 +418,7 @@ onDeactivated(() => {
       <FormInputNested
         :item-value="nestedEditValue"
         @add-item-data="addNestedFieldItemData"
-        @close-form="closeNestedForm"
+        @close="closeNestedForm"
       />
     </template>
   </TransitionFade>

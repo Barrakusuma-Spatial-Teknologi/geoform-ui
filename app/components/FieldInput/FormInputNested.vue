@@ -11,7 +11,7 @@ const props = defineProps<{
 
 const emits = defineEmits<{
   addItemData: [nestedFieldData: NestedItemValue, nestedItemKey: string, index?: number]
-  closeForm: []
+  close: []
 }>()
 
 const validationSchema = ref(zodResolver(createZodSchema(props.itemValue.config.fields)))
@@ -28,16 +28,14 @@ function save(e: FormSubmitEvent) {
 
   if (props.itemValue.index !== undefined) {
     emits("addItemData", e.values, props.itemValue.config.key, props.itemValue.index)
-    emits("closeForm")
     return
   }
 
   emits("addItemData", e.values, props.itemValue.config.key)
-  emits("closeForm")
 }
 
 function handleCancelButton() {
-  emits("closeForm")
+  emits("close")
 }
 
 const initialValues = computed(() => {
