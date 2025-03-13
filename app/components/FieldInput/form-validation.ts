@@ -88,5 +88,6 @@ export function createZodSchema(fields: FieldConfig[]) {
       ? fieldSchema
       : z.optional(fieldSchema)
   })
+
   return z.object(schema)
 }
