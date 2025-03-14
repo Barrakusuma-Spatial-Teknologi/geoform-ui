@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { FilterMatchMode } from "@primevue/core/api"
 import SearchField from "~/components/SurveyData/SearchField.vue"
 import { type FieldConfig, FieldOptionSearchable, FieldType } from "~/composables/project/model/project"
 import { remapFieldValue, useProjectStore } from "~/composables/project/project"
@@ -23,6 +24,20 @@ const data = ref<Record<string, unknown>[]>([])
 const { getById } = useProjectStore()
 let projectData!: Awaited<ReturnType<typeof useProjectData>>
 
+const statusOptions: {
+  name: string
+  value: string
+}[] = [
+  {
+    name: "Submitted",
+    value: "Submitted",
+  },
+  {
+    name: "Pending",
+    value: "Pending",
+  },
+]
+
 const totalData = ref(0)
 const paginationOpt = reactive<PaginationOption>({
   page: 1,
@@ -41,8 +56,16 @@ async function loadData() {
 
   totalData.value = await projectData.count(queryOpt)
 
-  const rows = (await projectData.getAll(paginationOpt, queryOpt)).map((f) => remapFieldValue(fields.value, f))
-  data.value = await Promise.all(rows)
+  const rawData = await projectData.getAll(paginationOpt, queryOpt)
+  const rows = await Promise.all(
+    rawData.map(async (f) => {
+      const mappedData = await remapFieldValue(fields.value, f)
+      const statusData = formatStatusValue(f.createdAt, f.syncAt)
+      return { ...mappedData, status: statusData }
+    }),
+  )
+
+  data.value = rows
 }
 
 watch([queryKeyword, searchableFieldSelected], async () => {
@@ -53,6 +76,20 @@ async function deleteData(dataId: string) {
   await projectData.delete(dataId)
   await loadData()
 }
+
+function formatStatusValue(
+  createdAt: number,
+  syncAt: number | undefined,
+): string {
+  if (syncAt == null || syncAt < createdAt) {
+    return "Pending"
+  }
+  return "Submitted"
+}
+
+const filters = ref({
+  status: { value: null, matchMode: FilterMatchMode.IN },
+})
 
 onMounted(async () => {
   isLoadingData.value = true
@@ -88,7 +125,13 @@ onMounted(async () => {
       </div>
     </div>
 
-    <DataTable class="grow" :value="data" :loading="isLoadingData">
+    <DataTable
+      v-model:filters="filters"
+      class="grow"
+      :value="data"
+      :loading="isLoadingData"
+      filter-display="menu"
+    >
       <template v-if="allFieldsVisible">
         <template v-for="field in fields" :key="field.key">
           <Column :field="field.name" :header="field.name" style="min-width: 150px">
@@ -105,6 +148,33 @@ onMounted(async () => {
           </template>
         </Column>
       </template>
+
+      <Column
+        header="Status"
+        field="status"
+        filter-field="status"
+        :show-filter-match-modes="false"
+        :show-filter-menu="true"
+      >
+        <template #body="slotProps">
+          <div> {{ slotProps.data.status }} </div>
+        </template>
+        <template #filter="{ filterModel }">
+          <MultiSelect
+            v-model="filterModel.value"
+            :options="statusOptions"
+            option-label="name"
+            placeholder="Status"
+            option-value="value"
+          >
+            <template #option="slotProps">
+              <div class="flex items-center gap-2">
+                <span>{{ slotProps.option.name }}</span>
+              </div>
+            </template>
+          </MultiSelect>
+        </template>
+      </Column>
 
       <Column header="Action" style="min-width: 150px">
         <template #body="slotProps">
