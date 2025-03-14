@@ -45,8 +45,6 @@ const paginationOpt = reactive<PaginationOption>({
 })
 const queryKeyword = ref<string>()
 
-const statusData = ref<string>()
-
 async function loadData() {
   let queryOpt: ProjectDataQueryOption | undefined
   if (queryKeyword.value != null && queryKeyword.value.length > 3) {
@@ -62,7 +60,8 @@ async function loadData() {
   const rows = await Promise.all(
     rawData.map(async (f) => {
       const mappedData = await remapFieldValue(fields.value, f)
-      return { ...mappedData, status: statusData.value }
+      const statusData = formatStatusValue(f.createdAt, f.syncAt)
+      return { ...mappedData, status: statusData }
     }),
   )
 
@@ -79,10 +78,10 @@ async function deleteData(dataId: string) {
 }
 
 function formatStatusValue(
-  updatedAt: number | undefined,
+  createdAt: number | undefined,
   syncAt: number | undefined,
 ): string {
-  if (syncAt == null || updatedAt == null || syncAt < updatedAt) {
+  if (syncAt == null || createdAt == null || syncAt < createdAt) {
     return "Pending"
   }
   return "Submitted"
@@ -101,9 +100,6 @@ onMounted(async () => {
       return
     }
     fields.value = project.fields
-
-    statusData.value = formatStatusValue(project.updatedAt, project.syncAt)
-
     projectData = useProjectData(props.projectId)
     totalData.value = await projectData.count()
 
