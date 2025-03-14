@@ -78,10 +78,10 @@ async function deleteData(dataId: string) {
 }
 
 function formatStatusValue(
-  createdAt: number | undefined,
+  createdAt: number,
   syncAt: number | undefined,
 ): string {
-  if (syncAt == null || createdAt == null || syncAt < createdAt) {
+  if (syncAt == null || syncAt < createdAt) {
     return "Pending"
   }
   return "Submitted"
