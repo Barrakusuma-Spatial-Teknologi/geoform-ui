@@ -100,6 +100,7 @@ onMounted(async () => {
       return
     }
     fields.value = project.fields
+
     projectData = useProjectData(props.projectId)
     totalData.value = await projectData.count()
 
