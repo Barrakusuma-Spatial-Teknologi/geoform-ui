@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { FilterMatchMode } from "@primevue/core/api"
 import SearchField from "~/components/SurveyData/SearchField.vue"
 import { type FieldConfig, FieldOptionSearchable, FieldType } from "~/composables/project/model/project"
 import { remapFieldValue, useProjectStore } from "~/composables/project/project"
@@ -22,6 +23,20 @@ const searchableFieldSelected = ref<number>(0)
 const data = ref<Record<string, unknown>[]>([])
 const { getById } = useProjectStore()
 let projectData!: Awaited<ReturnType<typeof useProjectData>>
+
+const statusOptions: {
+  name: string
+  value: string
+}[] = [
+  {
+    name: "Submitted",
+    value: "Submitted",
+  },
+  {
+    name: "Pending",
+    value: "Pending",
+  },
+]
 
 const totalData = ref(0)
 const paginationOpt = reactive<PaginationOption>({
@@ -54,6 +69,21 @@ async function deleteData(dataId: string) {
   await loadData()
 }
 
+function formatStatusValue(
+  updatedAt: number | undefined,
+  syncAt: number | undefined,
+) {
+  if (syncAt == null || updatedAt == null || syncAt < updatedAt) {
+    return "Pending"
+  }
+
+  return "Submitted"
+}
+
+const filters = ref({
+  status: { value: null, matchMode: FilterMatchMode.IN },
+})
+
 onMounted(async () => {
   isLoadingData.value = true
   try {
@@ -62,12 +92,19 @@ onMounted(async () => {
       isLoadingData.value = false
       return
     }
+
     fields.value = project.fields
 
     projectData = useProjectData(props.projectId)
     totalData.value = await projectData.count()
 
     await loadData()
+
+    const statusData = formatStatusValue(project.updatedAt, project.syncAt)
+    data.value = data.value.map((row) => ({
+      ...row,
+      status: statusData,
+    }))
   }
   catch (e) {
     captureToCloud(e)
@@ -88,7 +125,13 @@ onMounted(async () => {
       </div>
     </div>
 
-    <DataTable class="grow" :value="data" :loading="isLoadingData">
+    <DataTable
+      v-model:filters="filters"
+      class="grow"
+      :value="data"
+      :loading="isLoadingData"
+      filter-display="menu"
+    >
       <template v-if="allFieldsVisible">
         <template v-for="field in fields" :key="field.key">
           <Column :field="field.name" :header="field.name" style="min-width: 150px">
@@ -105,6 +148,33 @@ onMounted(async () => {
           </template>
         </Column>
       </template>
+
+      <Column
+        header="Status"
+        field="status"
+        filter-field="status"
+        :show-filter-match-modes="false"
+        :show-filter-menu="true"
+      >
+        <template #body="slotProps">
+          <div> {{ slotProps.data.status }} </div>
+        </template>
+        <template #filter="{ filterModel }">
+          <MultiSelect
+            v-model="filterModel.value"
+            :options="statusOptions"
+            option-label="name"
+            placeholder="Status"
+            option-value="value"
+          >
+            <template #option="slotProps">
+              <div class="flex items-center gap-2">
+                <span>{{ slotProps.option.name }}</span>
+              </div>
+            </template>
+          </MultiSelect>
+        </template>
+      </Column>
 
       <Column header="Action" style="min-width: 150px">
         <template #body="slotProps">
