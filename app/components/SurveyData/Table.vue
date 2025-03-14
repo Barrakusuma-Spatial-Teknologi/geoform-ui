@@ -45,6 +45,11 @@ const paginationOpt = reactive<PaginationOption>({
 })
 const queryKeyword = ref<string>()
 
+const timestampsData = reactive<Record<"updatedAt" | "syncAt", number | undefined>>({
+  updatedAt: undefined,
+  syncAt: undefined,
+})
+
 async function loadData() {
   let queryOpt: ProjectDataQueryOption | undefined
   if (queryKeyword.value != null && queryKeyword.value.length > 3) {
@@ -56,8 +61,16 @@ async function loadData() {
 
   totalData.value = await projectData.count(queryOpt)
 
-  const rows = (await projectData.getAll(paginationOpt, queryOpt)).map((f) => remapFieldValue(fields.value, f))
-  data.value = await Promise.all(rows)
+  const statusData = formatStatusValue(timestampsData.updatedAt, timestampsData.syncAt)
+  const rawData = await projectData.getAll(paginationOpt, queryOpt)
+  const rows = await Promise.all(
+    rawData.map(async (f) => {
+      const mappedData = await remapFieldValue(fields.value, f)
+      return { ...mappedData, status: statusData }
+    }),
+  )
+
+  data.value = rows
 }
 
 watch([queryKeyword, searchableFieldSelected], async () => {
@@ -92,19 +105,15 @@ onMounted(async () => {
       isLoadingData.value = false
       return
     }
-
     fields.value = project.fields
+
+    timestampsData.syncAt = project.syncAt
+    timestampsData.updatedAt = project.updatedAt
 
     projectData = useProjectData(props.projectId)
     totalData.value = await projectData.count()
 
     await loadData()
-
-    const statusData = formatStatusValue(project.updatedAt, project.syncAt)
-    data.value = data.value.map((row) => ({
-      ...row,
-      status: statusData,
-    }))
   }
   catch (e) {
     captureToCloud(e)
