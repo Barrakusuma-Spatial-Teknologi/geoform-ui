@@ -678,7 +678,8 @@ onMounted(async () => {
               return
             }
 
-            await submitDataCloud(selectedProject.id, toast)
+            await submitDataCloud(selectedProject.id, toast,
+                                  { longitude: coords.longitude, latitude: coords.latitude })
           }"
         >
           <div class="i-[solar--plain-bold]" />
