@@ -7,7 +7,7 @@ const chunkedCount = 3
 export async function submitDataCloud(
   projectId: string,
   toast: ToastServiceMethods,
-  coord?: { longitude: number, latitude: number },
+  participantLocation: { longitude: number, latitude: number },
 ) {
   const blocker = useUiBlocker()
 
@@ -46,10 +46,10 @@ export async function submitDataCloud(
     await ProjectDataService.syncProjectDataDeleted(projectId, true)
     blocker.setProgress(30)
 
-    await ProjectDataService.syncProjectDataUpdate(projectId, chunkedCount, (num) => {
+    await ProjectDataService.syncProjectDataUpdate(projectId, participantLocation, chunkedCount, (num) => {
       blocker.setProgress(num)
       blocker.setProgress(30 + ((num / 100) * 70))
-    }, coord)
+    })
 
     // const rowsCount = await useDb()
     //   .changesHistory

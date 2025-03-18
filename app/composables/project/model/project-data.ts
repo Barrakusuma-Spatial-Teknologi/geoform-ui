@@ -6,7 +6,7 @@ export interface ProjectData<D extends (string | ProjectDataFeature) = (string |
   data: D
   createdAt: number
   syncAt?: number
-  participantLocation?: number[]
+  participantLocation?: [number, number]
 }
 
 export interface ProjectDataImage {

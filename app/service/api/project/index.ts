@@ -408,9 +408,9 @@ async function syncProjectData(projectId: string, msgPack?: boolean) {
  */
 async function syncProjectDataUpdate(
   projectId: string,
+  participantLocation: { longitude: number, latitude: number },
   chunkedCount?: number,
   progressCallback?: (progress: number) => void,
-  coord?: { longitude: number, latitude: number },
 ) {
   const project = await useProjectStore().getById(projectId)
   if (project == null) {
@@ -450,7 +450,7 @@ async function syncProjectDataUpdate(
         id: row.id,
         geom: row.data.geom,
         data: row.data.data,
-        participantLocation: [coord?.longitude, coord?.latitude],
+        participantLocation: [participantLocation.longitude, participantLocation.latitude],
       })),
       deletedKeys: [],
       projectVersionId: project.versionId,

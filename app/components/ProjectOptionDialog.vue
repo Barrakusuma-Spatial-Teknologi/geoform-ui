@@ -39,7 +39,11 @@ const {
 })
 
 async function submitData() {
-  await submitDataCloud(props.project.id, toast, { longitude: coords.value.longitude, latitude: coords.value.latitude })
+  await submitDataCloud(
+    props.project.id,
+    toast,
+    { longitude: toRaw(coords.value.longitude), latitude: toRaw(coords.value.latitude) },
+  )
 }
 
 function confirmClearSubmitedData() {
