@@ -566,6 +566,8 @@ onMounted(async () => {
             :project-id="projectIndex"
             :fields="selectedProject?.fields ?? []"
             :coordinate="selectedCoordinate"
+            :participant-location="
+              { lng: coords.longitude, lat: coords.latitude }"
             @close="() => {
               projectDataIdSelected = undefined
               selectedCoordinate = {
