@@ -193,13 +193,6 @@ function formatItemValue(
   return valueText
 }
 
-const {
-  coords,
-} = useGeolocation({
-  immediate: true,
-  enableHighAccuracy: true,
-})
-
 async function save(e: FormSubmitEvent) {
   if (!e.valid) {
     toast.add({
@@ -250,7 +243,7 @@ async function save(e: FormSubmitEvent) {
     if (props.projectDataId == null) {
       await projectData.add(
         feature,
-        { longitude: toRaw(coords.value.longitude), latitude: toRaw(coords.value.latitude) },
+        { longitude: toRaw(props.coordinate.lng), latitude: toRaw(props.coordinate.lat) },
         projectDataId,
       )
     }
