@@ -4,10 +4,7 @@ export async function getCurrentLocation() {
       navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true })
     })
 
-    return {
-      longitude: position.coords.longitude,
-      latitude: position.coords.latitude,
-    }
+    return [position.coords.longitude, position.coords.latitude]
   }
   catch (error) {
     console.error("Error getting location:", error)
