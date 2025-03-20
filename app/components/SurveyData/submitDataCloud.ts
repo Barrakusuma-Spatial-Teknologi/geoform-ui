@@ -4,11 +4,7 @@ import { ProjectDataService } from "~/service/api/project"
 import { captureToCloud } from "~/utils/captureToCloud"
 
 const chunkedCount = 3
-export async function submitDataCloud(
-  projectId: string,
-  toast: ToastServiceMethods,
-  participantLocation: { longitude: number, latitude: number },
-) {
+export async function submitDataCloud(projectId: string, toast: ToastServiceMethods) {
   const blocker = useUiBlocker()
 
   blocker.show("Submitting image")
@@ -46,7 +42,7 @@ export async function submitDataCloud(
     await ProjectDataService.syncProjectDataDeleted(projectId, true)
     blocker.setProgress(30)
 
-    await ProjectDataService.syncProjectDataUpdate(projectId, participantLocation, chunkedCount, (num) => {
+    await ProjectDataService.syncProjectDataUpdate(projectId, chunkedCount, (num) => {
       blocker.setProgress(num)
       blocker.setProgress(30 + ((num / 100) * 70))
     })

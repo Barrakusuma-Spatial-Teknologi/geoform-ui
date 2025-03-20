@@ -406,12 +406,7 @@ async function syncProjectData(projectId: string, msgPack?: boolean) {
  * @param chunkedCount
  * @param progressCallback
  */
-async function syncProjectDataUpdate(
-  projectId: string,
-  participantLocation: { longitude: number, latitude: number },
-  chunkedCount?: number,
-  progressCallback?: (progress: number) => void,
-) {
+async function syncProjectDataUpdate(projectId: string, chunkedCount?: number, progressCallback?: (progress: number) => void) {
   const project = await useProjectStore().getById(projectId)
   if (project == null) {
     throw new Error("Project not found")
@@ -450,7 +445,7 @@ async function syncProjectDataUpdate(
         id: row.id,
         geom: row.data.geom,
         data: row.data.data,
-        participantLocation: [participantLocation.longitude, participantLocation.latitude],
+        participantLocation: [row.participantLocation?.[0], row.participantLocation?.[1]],
       })),
       deletedKeys: [],
       projectVersionId: project.versionId,

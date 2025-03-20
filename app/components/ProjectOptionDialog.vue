@@ -31,19 +31,8 @@ const toast = useToast()
 
 const blocker = useUiBlocker()
 
-const {
-  coords,
-} = useGeolocation({
-  immediate: true,
-  enableHighAccuracy: true,
-})
-
 async function submitData() {
-  await submitDataCloud(
-    props.project.id,
-    toast,
-    { longitude: toRaw(coords.value.longitude), latitude: toRaw(coords.value.latitude) },
-  )
+  await submitDataCloud(props.project.id, toast)
 }
 
 function confirmClearSubmitedData() {
