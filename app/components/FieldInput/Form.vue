@@ -18,6 +18,8 @@ const props = defineProps<{
     lng: number
     lat: number
   }
+  participantLocation:
+  [longitude: number, latitude: number] | undefined
 }>()
 
 const emits = defineEmits<{
@@ -241,7 +243,7 @@ async function save(e: FormSubmitEvent) {
     }
 
     if (props.projectDataId == null) {
-      await projectData.add(feature, projectDataId)
+      await projectData.add(feature, props.participantLocation, projectDataId)
     }
     else {
       await projectData.update(props.projectDataId, feature)

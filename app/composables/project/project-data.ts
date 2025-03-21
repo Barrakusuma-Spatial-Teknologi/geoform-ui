@@ -77,12 +77,17 @@ export function useProjectData(projectId: string) {
     return id
   }
 
-  const add = async (feature: ProjectDataFeature, id?: string) => {
+  const add = async (
+    feature: ProjectDataFeature,
+    participantLocation: [longitude: number, latitude: number] | undefined,
+    id?: string,
+  ) => {
     const resultId = await db.projectData.add({
       id: id ?? generateId(),
       projectId,
       data: JSON.stringify(feature),
       createdAt: Date.now(),
+      participantLocation,
     })
 
     changeTrackerChannel.publish({

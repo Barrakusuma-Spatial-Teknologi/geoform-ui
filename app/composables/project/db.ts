@@ -80,6 +80,10 @@ export function migrateDatabase() {
   db.version(3).stores({
     fileHandler: "++",
   })
+
+  db.version(4).stores({
+    projectData: "id, projectId, data, createdBy, updatedAt, syncAt, participantLocation",
+  })
 }
 
 const broker = new MessageBroker<{

@@ -440,13 +440,16 @@ async function syncProjectDataUpdate(projectId: string, chunkedCount?: number, p
   let currentChunk = 0
   for (const changes of chunk(modified, chunkedCount ?? 3)) {
     const rows = await projectDataStore.getByIds(changes.map((row) => row.dataId))
+    const currentLocation = await getCurrentLocation()
 
     const payload = {
-      modified: rows.map((row) => ({
-        id: row.id,
-        geom: row.data.geom,
-        data: row.data.data,
-      })),
+      modified: rows.map((row) => (
+        {
+          id: row.id,
+          geom: row.data.geom,
+          data: row.data.data,
+          participantLocation: row.participantLocation ?? currentLocation,
+        })),
       deletedKeys: [],
       projectVersionId: project.versionId,
     } satisfies SyncProjectDataPayload

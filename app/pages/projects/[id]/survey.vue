@@ -109,6 +109,13 @@ const {
   enableHighAccuracy: true,
 })
 
+const participantLocation = computed<[number, number] | undefined>(() => {
+  if (coords.value?.longitude == null || coords.value?.latitude == null) {
+    return undefined
+  }
+  return [coords.value.longitude, coords.value.latitude]
+})
+
 const positionAccuracy = computed(() => coords.value.accuracy)
 
 const formVisible = ref(false)
@@ -566,6 +573,7 @@ onMounted(async () => {
             :project-id="projectIndex"
             :fields="selectedProject?.fields ?? []"
             :coordinate="selectedCoordinate"
+            :participant-location="participantLocation"
             @close="() => {
               projectDataIdSelected = undefined
               selectedCoordinate = {
