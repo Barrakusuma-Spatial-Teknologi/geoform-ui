@@ -62,10 +62,6 @@ const layerTypeOptions: {
     value: LayerDataType.GEOJSON,
     label: "GeoJSON",
   },
-  // {
-  //   value: LayerDataType.XYZVECTOR,
-  //   label: "XYZ Vector",
-  // },
   {
     value: LayerDataType.XYZRASTER,
     label: "XYZ Raster",
@@ -175,7 +171,7 @@ async function addLayer() {
       <IftaLabel fluid class="mb-4">
         <InputText
           id="layerUrl"
-          v-model="(data as LayerDataType.XYZRASTER)!.tileUrl"
+          v-model="(data as LayerDataXYZRaster)!.tileUrl"
           fluid
           placeholder="URL TileJSON or XYZ"
         />
@@ -186,7 +182,7 @@ async function addLayer() {
 
   <div class="flex w-full   gap-x-8">
     <div class="w-[50px] grow-0">
-      <Button severity="secondary" @click="emits('close')">
+      <Button severity="secondary" @click="emits('cancel')">
         Cancel
       </Button>
     </div>
