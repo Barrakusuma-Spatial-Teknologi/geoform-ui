@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useDb } from "~/composables/project/db"
 import { useProjectStore } from "~/composables/project/project"
+import { useProjectTags } from "~/composables/project/project-tags"
 import { useUiBlocker } from "~/composables/ui/blocker"
 import { type ProjectResponse, ProjectService } from "~/service/api/project"
 
@@ -88,6 +89,7 @@ async function addProjectToLocal() {
     const projectItem = projects.value.find((row) => row.id === projectId)!
 
     await projectStore.saveFromCloud(project, projectItem.isCollaboration)
+    await useProjectTags(projectId).add(project.participantTags)
 
     blocker.show("Saving project layers")
 
@@ -108,6 +110,12 @@ async function addProjectToLocal() {
       summary: "Failed to add project",
       life: 3000,
     })
+
+    // cleanup on failure
+    const stored = await useDb().project.get(projectId)
+    if (stored != null) {
+      await useDb().project.delete(projectId)
+    }
   }
   finally {
     blocker.hide()
@@ -126,13 +134,13 @@ onMounted(async () => {
     <div class="shrink-0 grow-0 pb-8">
       <FloatLabel class="mb-3" variant="on">
         <InputGroup>
-          <InputText fluid />
+          <InputText id="search-name" fluid />
           <InputGroupAddon>
             <i class="i-[solar--magnifer-linear]" />
           </InputGroupAddon>
         </InputGroup>
 
-        <label>Search name</label>
+        <label for="search-name">Search name</label>
       </FloatLabel>
 
       <div class="filter-option flex items-center space-x-2 overflow-x-auto">
@@ -166,8 +174,8 @@ onMounted(async () => {
           </div>
 
           <IftaLabel v-if="selectedProject != null" class="mb-6 box-border">
-            <InputText fluid size="small" :default-value="selectedProject.title" readonly />
-            <label>Project name</label>
+            <InputText id="project-name" fluid size="small" :default-value="selectedProject.title" readonly />
+            <label for="project-name">Project name</label>
           </IftaLabel>
 
           <template #footer>
@@ -200,7 +208,3 @@ onMounted(async () => {
     </div>
   </div>
 </template>
-
-<style scoped>
-
-</style>

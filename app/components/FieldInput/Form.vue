@@ -7,6 +7,7 @@ import { get } from "es-toolkit/compat"
 import { createZodSchema } from "~/components/FieldInput/form-validation"
 import { type FieldConfig, type FieldConfigNested, FieldType } from "~/composables/project/model/project"
 import { useProjectData } from "~/composables/project/project-data"
+import { useProjectTags } from "~/composables/project/project-tags"
 import FormInputNested from "./FormInputNested.vue"
 import FormInputSingular from "./FormInputSingular.vue"
 
@@ -20,11 +21,12 @@ const props = defineProps<{
   }
   participantLocation:
   [longitude: number, latitude: number] | undefined
+  tags?: string[]
 }>()
 
 const emits = defineEmits<{
   close: []
-  save: [feature: Record<string, any>]
+  save: [feature: Record<string, any>, tags?: string[]]
 }>()
 
 const fieldValues = ref<(FieldConfig & {
@@ -49,10 +51,19 @@ let projectData!: ReturnType<typeof useProjectData>
 let imageOriginalKey: Record<string, string> = {}
 
 const nestedFieldsData = ref<Record<string, NestedItemValue[]>>({})
+const projectDataTags = ref<string[]>([])
 
 async function resetFields() {
   const data = props.projectDataId != null ? await projectData.getById(props.projectDataId) : {}
   const init: Record<string, any> = {}
+
+  const existingTags = get(data, "tags") as string[] | undefined
+  if (existingTags != null) {
+    projectDataTags.value = existingTags
+  }
+  else {
+    projectDataTags.value = props.tags ?? []
+  }
 
   imageOriginalKey = {}
   fieldValues.value = await Promise.all(
@@ -249,7 +260,7 @@ async function save(e: FormSubmitEvent) {
       await projectData.update(props.projectDataId, feature)
     }
 
-    emits("save", feature)
+    emits("save", feature, projectDataTags.value)
   }
   catch (e) {
     if (e?.message === "QuotaExceededError ") {
@@ -278,8 +289,14 @@ function convertDDToDMS(decimalDegrees: number): string {
   return `${sign}${degrees}° ${minutes}' ${seconds}"`
 }
 
+const projectTags = ref<Record<string, string>>()
+async function getProjectTags() {
+  projectTags.value = await useProjectTags(props.projectId).get()
+}
+
 onActivated(async () => {
   projectData = useProjectData(props.projectId)
+  await getProjectTags()
   await resetFields()
 })
 onMounted(async () => {
@@ -290,6 +307,7 @@ onMounted(async () => {
   }
 
   projectData = useProjectData(props.projectId)
+  await getProjectTags()
   await resetFields()
 })
 
@@ -326,6 +344,17 @@ onDeactivated(() => {
               </div>
             </li>
 
+            <li v-if="props.tags != null && props.tags.length > 0">
+              <div class="mb-1 text-sm text-surface-400">
+                Tags
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <template v-for="tag in projectDataTags ?? []" :key="tag">
+                  <Tag :value="get(projectTags, tag, tag)" rounded />
+                </template>
+              </div>
+            </li>
+
             <li
               v-for="(field) in props.fields" :key="field.key" class="w-full space-y-2"
               :class="[field.required ? 'required' : '']"
@@ -334,11 +363,11 @@ onDeactivated(() => {
                 <FormInputSingular :field="field" :form="$form" />
               </template>
               <template v-else>
-                <label class="text-sm">
+                <label :for="field.key" class="text-sm">
                   {{ field.name }}
                 </label>
                 <template v-if="nestedFieldsData[field.key] != null">
-                  <div
+                  <ul
                     :class="nestedFieldsData[field.key]?.length !== 0
                       ? 'dark:bg-surface-700 p-3 rounded bg-surface-200'
                       : ''"
@@ -348,9 +377,9 @@ onDeactivated(() => {
                       :key="nestedItemIndex"
                       class="remove-required flex w-full space-x-2 "
                     >
-                      <div class="w-2/3 rounded ">
+                      <div class="w-2/3 rounded">
                         <IftaLabel>
-                          <label>{{ field.fields[0]?.name }}</label>
+                          <label :for="field.fields[0]?.key">{{ field.fields[0]?.name }}</label>
                           <template v-if="field.fields[0]?.type === FieldType.CHECKBOX">
                             <InputText
                               fluid readonly :value="formatItemValue(value, field.fields[0].fieldConfig.options)"
@@ -375,7 +404,7 @@ onDeactivated(() => {
                         </Button>
                       </div>
                     </li>
-                  </div>
+                  </ul>
                 </template>
 
                 <div
