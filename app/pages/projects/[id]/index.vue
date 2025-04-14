@@ -59,6 +59,7 @@ async function syncProject(selected: string) {
       severity: "error",
       closable: true,
     })
+    throw e
   }
   finally {
     blocker.hide()
@@ -124,6 +125,8 @@ async function saveProject() {
     })
 
     let layerOrder = 0
+    await useProjectLayer(projectId.value!).remove()
+
     for (const layer of layers.value) {
       const layerData = layer.layerData && deepToRaw(layer.layerData)
 
@@ -217,7 +220,3 @@ onMounted(async () => {
     </div>
   </div>
 </template>
-
-<style scoped>
-
-</style>

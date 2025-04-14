@@ -45,6 +45,7 @@ export interface LayerDataXYZVector extends LayerDataBase<LayerDataType.XYZVECTO
 export interface LayerDataGeoJSON extends LayerDataBase<LayerDataType.GEOJSON> {
   data: FeatureCollection
   validation?: LayerValidationConfig
+  inputConfig?: LayerDataAsInput
 }
 
 export enum LayerStyleType {
@@ -89,4 +90,8 @@ export interface LayerStylePoint extends LayerStyleBase<LayerStyleType.POINT> {
 
 export interface LayerValidationConfig {
   mode: "off" | "forbidden" | "inside"
+}
+
+export interface LayerDataAsInput {
+  field?: string
 }

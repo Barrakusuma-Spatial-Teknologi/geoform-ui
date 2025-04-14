@@ -9,10 +9,6 @@ export function useProjectLayer(projectId: string) {
     return db.projectLayer.filter((o) => o.projectId === projectId).toArray()
   }
 
-  const update = async (layer: ProjectLayer) => {
-    return db.projectLayer.update(layer.id, omit(layer, ["id"]))
-  }
-
   const add = async (layer: Omit<ProjectLayer, "createdAt" | "id">, layerId?: string) => {
     const id = layerId ?? generateId()
     return db.projectLayer.add({
@@ -22,7 +18,20 @@ export function useProjectLayer(projectId: string) {
     })
   }
 
-  const remove = async (layerId: string) => {
+  const update = async (layer: ProjectLayer) => {
+    const existing = await db.projectLayer.get(layer.id)
+    if (existing == null) {
+      await add(layer, layer.id)
+    }
+
+    return db.projectLayer.update(layer.id, omit(layer, ["id"]))
+  }
+
+  const remove = async (layerId?: string) => {
+    if (layerId == null) {
+      await db.projectLayer.toCollection().delete()
+      return
+    }
     return db.projectLayer.delete(layerId)
   }
 
