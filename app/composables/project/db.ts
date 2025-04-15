@@ -1,10 +1,8 @@
-import type {
-  DBCoreMutateRequest,
-  EntityTable,
-} from "dexie"
+import type { DBCoreMutateRequest, EntityTable } from "dexie"
 import type { Project } from "~/composables/project/model/project"
 import type { ProjectData, ProjectDataImage } from "~/composables/project/model/project-data"
 import type { ProjectLayer } from "~/composables/project/model/project-layer"
+import type { ProjectTags } from "~/composables/project/model/tags"
 import { MessageBroker, RSVPMediator } from "@morgan-stanley/message-broker"
 import Dexie from "dexie"
 
@@ -45,6 +43,7 @@ type DatabaseInstance = Dexie & {
   image: EntityTable<ProjectDataImage, "id">
   changesHistory: EntityTable<TableChange, "id">
   fileHandler: EntityTable<FileSystemFileHandle>
+  projectTags: EntityTable<ProjectTags, "id">
 }
 
 let db!: DatabaseInstance
@@ -83,6 +82,11 @@ export function migrateDatabase() {
 
   db.version(4).stores({
     projectData: "id, projectId, data, createdBy, updatedAt, syncAt, participantLocation",
+  })
+
+  db.version(5).stores({
+    projectData: "id, projectId, data, createdBy, updatedAt, syncAt, participantLocation, tags",
+    projectTags: "++, projectId, data",
   })
 }
 

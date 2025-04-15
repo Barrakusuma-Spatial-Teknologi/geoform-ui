@@ -2,6 +2,7 @@
 import type { FeatureCollection } from "geojson"
 import type { TileJSON } from "maplibre-gl/src/util/util"
 import type { FileUploadSelectEvent } from "primevue"
+import { get } from "radash"
 import { match } from "ts-pattern"
 import {
   type LayerData,
@@ -61,15 +62,24 @@ const layerTypeOptions: {
     value: LayerDataType.GEOJSON,
     label: "GeoJSON",
   },
-  // {
-  //   value: LayerDataType.XYZVECTOR,
-  //   label: "XYZ Vector",
-  // },
   {
     value: LayerDataType.XYZRASTER,
     label: "XYZ Raster",
   },
 ]
+
+function parseGeoJSON(data: string | ArrayBuffer): FeatureCollection {
+  const content = typeof data === "string"
+    ? data
+    : new TextDecoder().decode(data)
+
+  const parsed = JSON.parse(content)
+
+  return {
+    type: "FeatureCollection",
+    features: get(parsed, "features", []),
+  }
+}
 
 function onFileSelect(event: FileUploadSelectEvent) {
   const file = event.files[0]
@@ -87,10 +97,7 @@ function onFileSelect(event: FileUploadSelectEvent) {
     }
 
     try {
-      const content = typeof result === "string"
-        ? result
-        : new TextDecoder().decode(result);
-      (data.value! as LayerDataGeoJSON).data = JSON.parse(content) as FeatureCollection
+      (data.value! as LayerDataGeoJSON).data = parseGeoJSON(result)
     }
     catch {
       toast.add({
@@ -110,7 +117,7 @@ async function tryObtainTileUrl() {
   }
 
   const tilejson = await $fetch<TileJSON>(layerData.tileUrl)
-  layerData.tileUrl = tilejson.tiles[0]
+  layerData.tileUrl = tilejson.tiles[0] ?? ""
   return tilejson?.bounds
 }
 
@@ -164,7 +171,7 @@ async function addLayer() {
       <IftaLabel fluid class="mb-4">
         <InputText
           id="layerUrl"
-          v-model="(data as LayerDataType.XYZRASTER)!.tileUrl"
+          v-model="(data as LayerDataXYZRaster)!.tileUrl"
           fluid
           placeholder="URL TileJSON or XYZ"
         />
@@ -175,7 +182,7 @@ async function addLayer() {
 
   <div class="flex w-full   gap-x-8">
     <div class="w-[50px] grow-0">
-      <Button severity="secondary" @click="emits('close')">
+      <Button severity="secondary" @click="emits('cancel')">
         Cancel
       </Button>
     </div>
@@ -187,7 +194,3 @@ async function addLayer() {
     </div>
   </div>
 </template>
-
-<style scoped>
-
-</style>

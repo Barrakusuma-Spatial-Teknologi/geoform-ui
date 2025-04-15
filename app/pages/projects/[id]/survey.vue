@@ -4,6 +4,7 @@ import type { Point } from "geojson"
 import type { GeoJSONSource, LayerSpecification, StyleSpecification } from "maplibre-gl"
 import type { FieldConfig } from "~/composables/project/model/project"
 import type { ProjectDataFeature } from "~/composables/project/model/project-data"
+import bbox from "@turf/bbox"
 import { UseTimeAgo } from "@vueuse/components"
 import { orderBy } from "es-toolkit"
 import { get } from "es-toolkit/compat"
@@ -69,6 +70,7 @@ const projectLayers = ref<(Pick<ProjectLayer, "layerName" | "id" | "layerStyle">
   visible: true
 })[]>([])
 const layerAsValidation: { mode: LayerValidationConfig["mode"], id: string, name: string }[] = []
+const layerAsInput: { field: string, id: string, name: string }[] = []
 
 async function loadProjectDataToMap() {
   if (map == null) {
@@ -123,6 +125,7 @@ const selectedCoordinate = ref({
   lng: 0,
   lat: 0,
 })
+const inputTags = ref<string[]>()
 
 function showForm(coord?: {
   lng: number
@@ -138,8 +141,10 @@ function showForm(coord?: {
     }
   }
 
+  const pixelCoord = map.project([selectedCoordinate.value.lng, selectedCoordinate.value.lat])
+
   for (const layer of layerAsValidation) {
-    const features = map.queryRenderedFeatures([selectedCoordinate.value.lng, selectedCoordinate.value.lat], {
+    const features = map.queryRenderedFeatures(pixelCoord, {
       layers: [layer.id],
     })
 
@@ -163,6 +168,23 @@ function showForm(coord?: {
         group: "bc",
       })
       return
+    }
+  }
+
+  if (layerAsInput.length === 0) {
+    inputTags.value = undefined
+  }
+  else {
+    for (const layer of layerAsInput) {
+      const features = map.queryRenderedFeatures(pixelCoord, {
+        layers: [layer.id],
+      })
+
+      inputTags.value = features
+        .map((feature) => {
+          return get(feature.properties, layer.field)
+        })
+        .filter((tag) => tag != null)
     }
   }
 
@@ -236,6 +258,24 @@ function convertDDToDMS(decimalDegrees: number): string {
 }
 
 const layerManagerVisible = ref(false)
+async function zoomToLayer(layerId: string) {
+  const sourceId = map.getLayer(layerId)?.source
+  if (sourceId == null) {
+    return
+  }
+
+  const source = map.getSource(sourceId) as GeoJSONSource
+  if (source == null) {
+    return
+  }
+
+  const extent = bbox(await source.getData())
+
+  map.fitBounds([extent[0], extent[1], extent[2], extent[3]], {
+    padding: 5,
+    duration: 0,
+  })
+}
 
 const uiBlocker = useUiBlocker()
 const appConfig = useAppConfig()
@@ -408,6 +448,14 @@ onMounted(async () => {
             name: layer.layerName,
           })
         }
+
+        if (l.inputConfig != null && l.inputConfig?.field != null) {
+          layerAsInput.push({
+            id: layer.id,
+            name: layer.layerName,
+            field: l.inputConfig!.field,
+          })
+        }
       })
       .run()
 
@@ -559,7 +607,22 @@ onMounted(async () => {
       position="bottom"
       header="Layer Manager"
     >
-      <CommonUnderConstruction />
+      <ul>
+        <template v-for="layer in projectLayers" :key="layer.id">
+          <li class="mb-2 flex w-full items-center justify-between">
+            <div>{{ layer.layerName }}</div>
+            <div>
+              <Button
+                text size="small" @click="() => {
+                  zoomToLayer(layer.id)
+                }"
+              >
+                zoom
+              </Button>
+            </div>
+          </li>
+        </template>
+      </ul>
     </Drawer>
 
     <Drawer
@@ -574,6 +637,7 @@ onMounted(async () => {
             :fields="selectedProject?.fields ?? []"
             :coordinate="selectedCoordinate"
             :participant-location="participantLocation"
+            :tags="inputTags"
             @close="() => {
               projectDataIdSelected = undefined
               selectedCoordinate = {
@@ -621,6 +685,12 @@ onMounted(async () => {
 
             Backup
             <UseTimeAgo v-if="appConfig.config?.timeMachine?.lastUpdated != null" :time="appConfig.config?.timeMachine?.lastUpdated" />
+          </Button>
+        </div>
+
+        <div class="absolute bottom-0 left-0 z-10 rounded-lg p-2">
+          <Button class="" severity="secondary" size="small" @click="layerManagerVisible = true">
+            <i class="i-[solar--layers-minimalistic-bold] text-xl" />
           </Button>
         </div>
 

@@ -6,6 +6,7 @@ export interface ProjectData<D extends (string | ProjectDataFeature) = (string |
   data: D
   createdAt: number
   syncAt?: number
+  tags?: string[]
   participantLocation?: [number, number]
 }
 
@@ -22,4 +23,5 @@ export interface ProjectDataImage {
 export interface ProjectDataFeature {
   geom: Geometry
   data: Record<string, any>
+  tags?: string[]
 }

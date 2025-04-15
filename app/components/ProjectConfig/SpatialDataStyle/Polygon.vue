@@ -1,15 +1,8 @@
 <script setup lang="ts">
 import type { SpatialDataLayers } from "../spatialDataConfig"
+import LayerAsInputConfig from "~/components/ProjectConfig/SpatialDataStyle/LayerAsInputConfig.vue"
 import LayerValidation from "~/components/ProjectConfig/SpatialDataStyle/LayerValidation.vue"
-import {
-  type LayerDataGeoJSON,
-  LayerDataType,
-  type LayerStylePolygon,
-} from "~/composables/project/model/project-layer"
-
-// const props = defineProps<{
-//   data: SpatialDataLayers
-// }>()
+import { type LayerDataGeoJSON, LayerDataType, type LayerStylePolygon } from "~/composables/project/model/project-layer"
 
 const emits = defineEmits<{
   changeStyle: []
@@ -164,9 +157,12 @@ onMounted(() => {
     />
     <label for="labelFields">Label Field</label>
   </IftaLabel>
-  <LayerValidation v-if="data?.layerData != null && data?.layerData.type === LayerDataType.GEOJSON" v-model:value="data.layerData!.validation!" />
+  <LayerValidation
+    v-if="data?.layerData != null && data?.layerData.type === LayerDataType.GEOJSON"
+    v-model:value="data.layerData!.validation!"
+  />
+  <LayerAsInputConfig
+    v-if="data?.layerData != null && data?.layerData.type === LayerDataType.GEOJSON"
+    v-model:value="data.layerData!.inputConfig!" :fields="labelFieldsOptions"
+  />
 </template>
-
-<style scoped>
-
-</style>

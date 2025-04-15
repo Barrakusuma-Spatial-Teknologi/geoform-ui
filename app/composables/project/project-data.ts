@@ -88,6 +88,7 @@ export function useProjectData(projectId: string) {
       data: JSON.stringify(feature),
       createdAt: Date.now(),
       participantLocation,
+      tags: feature?.tags,
     })
 
     changeTrackerChannel.publish({
@@ -113,6 +114,7 @@ export function useProjectData(projectId: string) {
     await db.projectData.update(id, {
       data: JSON.stringify(feature),
       projectId,
+      tags: feature?.tags,
     })
 
     changeTrackerChannel.publish({

@@ -9,6 +9,7 @@ export interface JSendBase<T = unknown> {
 
 export interface MainServiceOpt extends NitroFetchOptions<string> {
   removeAuth?: boolean
+  msgPack?: Uint8Array<ArrayBufferLike>
 }
 
 /**
@@ -27,9 +28,16 @@ export async function useMainServiceFetch<R, O = MainServiceOpt>(path: string, o
     headers.set("Authorization", `Bearer ${auth.jwtToken ?? ""}`)
   }
 
+  const msgPack = get<MainServiceOpt["msgPack"]>(opt, "msgPack", undefined)
+
+  if (msgPack != null) {
+    headers.set("Content-Type", "application/msgpack")
+  }
+
   return await $fetch<JSendBase<R>>(apiUrlWrapped + path, {
     // @ts-expect-error need to find out the correct typing for option
     ...omit(opt, ["headers", "removeAuth"]),
     headers,
+    ...(msgPack == null ? {} : { body: msgPack }),
   })
 }

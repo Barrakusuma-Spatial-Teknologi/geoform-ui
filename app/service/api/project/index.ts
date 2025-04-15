@@ -2,8 +2,10 @@ import type { FieldConfig } from "~/composables/project/model/project"
 import type { ProjectDataFeature } from "~/composables/project/model/project-data"
 import type { ProjectLayer } from "~/composables/project/model/project-layer"
 import type { ProjectDataUpdatePayload } from "~/service/api/project/model"
+import type { TagResponse } from "~/service/api/tag"
 import { encode } from "@msgpack/msgpack"
 import { chunk, omit } from "es-toolkit"
+import { get } from "es-toolkit/compat"
 import { sleep } from "radash"
 import { UUID } from "uuidv7"
 import { TableChangeType, useDb } from "~/composables/project/db"
@@ -46,8 +48,12 @@ export interface ProjectResponse {
   isCollaboration: boolean
 }
 
+export interface ProjectResponseWithTag extends ProjectResponse {
+  participantTags: TagResponse[]
+}
+
 async function getById(projectId: string) {
-  return await useMainServiceFetch<ProjectResponse>(`/projects/${projectId}`)
+  return await useMainServiceFetch<ProjectResponseWithTag>(`/projects/${projectId}`)
 }
 
 async function getByIdPublic(projectId: string) {
@@ -87,6 +93,7 @@ async function saveToCloud(projectId: string, quota?: number) {
 
   const created = await useMainServiceFetch<ProjectUpdatedResponse>("/projects", {
     method: "POST",
+    // msgPack: encode(payload),
     body: payload,
   })
 
@@ -109,7 +116,10 @@ async function update(projectId: string) {
 
   const projectLayer = useProjectLayer(projectId)
   const layers = (await projectLayer.getAll()).map((layer) => {
-    return omit(layer, ["projectId", "createdAt"])
+    return {
+      ...omit(layer, ["projectId", "createdAt"]),
+      // id: UUID.parse(layer.id),
+    }
   })
 
   const payload: ProjectUpdatePayload = {
@@ -118,12 +128,14 @@ async function update(projectId: string) {
     title: project.name,
     fields: project.fields,
     layers,
+    // currentVersionId: UUID.parse(project.versionId!),
     currentVersionId: project.versionId!,
   }
 
   const created = await useMainServiceFetch<ProjectUpdatedResponse>(`/projects/${projectId}`, {
     method: "PATCH",
     body: payload,
+    // msgPack: encode(payload),
   })
 
   const syncAt = created.data?.updatedAt == null ? Date.now() : new Date(created.data.updatedAt).getTime()
@@ -191,7 +203,7 @@ async function submitAllImage(projectId: string, limit?: number, mssgPack?: bool
     // }
     catch (e) {
       // eslint-disable-next-line no-console
-      console.debug(`failed to send message pack, falling back to json, ${e?.message}`)
+      console.debug(`failed to send message pack, falling back to json, ${get(e, "message")}`)
       await useMainServiceFetch(`/projects/images/batch-create`, {
         method: "POST",
         body,
@@ -342,7 +354,7 @@ async function sendSyncRequest(projectId: string, payload: SyncProjectDataPayloa
     }
     catch (e) {
       // eslint-disable-next-line no-console
-      console.debug(`Failed to send MessagePack, falling back to JSON: ${e?.message}`)
+      console.debug(`Failed to send MessagePack, falling back to JSON: ${get(e, "message")}`)
     }
   }
 
@@ -417,9 +429,6 @@ async function syncProjectDataUpdate(projectId: string, chunkedCount?: number, p
   }
 
   const tableChangeQuery = useDb().changesHistory.filter((row) => row.projectId === projectId && row.changeType !== TableChangeType.Delete)
-  // if (chunkedCount != null) {
-  //   tableChangeQuery = tableChangeQuery.limit(chunkedCount)
-  // }
   const modified = await tableChangeQuery.toArray()
   if (modified.length === 0) {
     return
@@ -532,13 +541,14 @@ async function join(projectId: string) {
   })
 }
 
-export interface UserResponse {
+export interface ParticipantResponse {
   id: string
   username: string
+  tagId: string[]
 }
 
 async function getParticipants(projectId: string) {
-  return useMainServiceFetch<UserResponse[]>(`/projects/${projectId}/participants`)
+  return useMainServiceFetch<ParticipantResponse[]>(`/projects/${projectId}/participants`)
 }
 
 async function removeParticipant(projectId: string, userId: string) {
