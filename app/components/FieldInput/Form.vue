@@ -27,6 +27,7 @@ const props = defineProps<{
 const emits = defineEmits<{
   close: []
   save: [feature: Record<string, any>, tags?: string[]]
+  editCoordinate: []
 }>()
 
 const fieldValues = ref<(FieldConfig & {
@@ -339,8 +340,14 @@ onDeactivated(() => {
                 Location at
               </div>
 
-              <div>
-                {{ convertDDToDMS(props.coordinate.lng) }} ; {{ convertDDToDMS(props.coordinate.lat) }}
+              <div class="flex items-center justify-between space-x-3">
+                <div>
+                  {{ convertDDToDMS(props.coordinate.lng) }} ; {{ convertDDToDMS(props.coordinate.lat) }}
+                </div>
+
+                <Button severity="secondary" variant="text" size="small" @click="emits('editCoordinate')">
+                  <i class="i-[solar--pen-linear] text-lg" />
+                </Button>
               </div>
             </li>
 
