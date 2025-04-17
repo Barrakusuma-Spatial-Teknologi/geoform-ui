@@ -340,7 +340,7 @@ onDeactivated(() => {
                 Location at
               </div>
 
-              <div class="flex items-center justify-between space-x-3">
+              <div class="flex items-center justify-between">
                 <div>
                   {{ convertDDToDMS(props.coordinate.lng) }} ; {{ convertDDToDMS(props.coordinate.lat) }}
                 </div>
