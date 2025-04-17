@@ -814,7 +814,7 @@ onMounted(async () => {
                 size="small"
                 @click="editCoordinateWithCurrentLocation"
               >
-                Use My Location
+                Use my location
               </Button>
             </div>
           </template>
