@@ -172,31 +172,31 @@ function showForm(coord?: {
     }
   }
 
-  if (!isEditCoordinateMode.value) {
-    if (layerAsInput.length === 0) {
-      inputTags.value = undefined
-    }
-    else {
-      for (const layer of layerAsInput) {
-        const features = map.queryRenderedFeatures(pixelCoord, {
-          layers: [layer.id],
-        })
-
-        inputTags.value = features
-          .map((feature) => {
-            return get(feature.properties, layer.field)
-          })
-          .filter((tag) => tag != null)
-      }
-    }
-
-    formVisible.value = true
-  }
-  else {
+  if (isEditCoordinateMode.value) {
     isEditCoordinateMode.value = false
     document.querySelector(".p-drawer")?.classList.remove("!hidden")
     document.querySelector(".p-drawer-mask")?.classList.remove("!hidden")
+    return
   }
+
+  if (layerAsInput.length === 0) {
+    inputTags.value = undefined
+  }
+  else {
+    for (const layer of layerAsInput) {
+      const features = map.queryRenderedFeatures(pixelCoord, {
+        layers: [layer.id],
+      })
+
+      inputTags.value = features
+        .map((feature) => {
+          return get(feature.properties, layer.field)
+        })
+        .filter((tag) => tag != null)
+    }
+  }
+
+  formVisible.value = true
 }
 
 function setPositionSource() {
@@ -777,44 +777,49 @@ onMounted(async () => {
         </TransitionFade>
         <div id="map" class="map relative size-full" />
       </div>
-      <template v-if="!isEditCoordinateMode">
-        <div class="box-border flex grow-0 justify-between space-x-4 px-6 py-4">
-          <Button
-            severity="primary" size="small" variant="text" @click="async () => {
-              if (selectedProject == null) {
-                return
-              }
 
-              await submitDataCloud(selectedProject.id, toast)
-            }"
-          >
-            <div class="i-[solar--plain-bold]" />
-            Submit
-          </Button>
+      <TransitionFade>
+        <KeepAlive>
+          <template v-if="!isEditCoordinateMode">
+            <div class="box-border flex grow-0 justify-between space-x-4 px-6 py-4">
+              <Button
+                severity="primary" size="small" variant="text" @click="async () => {
+                  if (selectedProject == null) {
+                    return
+                  }
 
-          <Button severity="primary" size="small" variant="text" @click="showDataVisible = true">
-            Show data
-          </Button>
+                  await submitDataCloud(selectedProject.id, toast)
+                }"
+              >
+                <div class="i-[solar--plain-bold]" />
+                Submit
+              </Button>
 
-          <Button
-            severity="primary" size="small" @click="() => {
-              showForm()
-            }"
-          >
-            Add data
-          </Button>
-        </div>
-      </template>
-      <template v-else>
-        <div class="absolute bottom-10 left-1/2 -translate-x-1/2">
-          <Button
-            size="small"
-            @click="editCoordinateWithCurrentLocation"
-          >
-            Use Current Location
-          </Button>
-        </div>
-      </template>
+              <Button severity="primary" size="small" variant="text" @click="showDataVisible = true">
+                Show data
+              </Button>
+
+              <Button
+                severity="primary" size="small" @click="() => {
+                  showForm()
+                }"
+              >
+                Add data
+              </Button>
+            </div>
+          </template>
+          <template v-else>
+            <div class="absolute bottom-10 left-1/2 -translate-x-1/2">
+              <Button
+                size="small"
+                @click="editCoordinateWithCurrentLocation"
+              >
+                Use My Location
+              </Button>
+            </div>
+          </template>
+        </KeepAlive>
+      </TransitionFade>
     </main>
   </div>
 </template>
