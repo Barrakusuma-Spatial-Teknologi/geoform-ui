@@ -126,6 +126,7 @@ const selectedCoordinate = ref({
   lat: 0,
 })
 const inputTags = ref<string[]>()
+const isEditCoordinateMode = ref<boolean>(false)
 
 function showForm(coord?: {
   lng: number
@@ -169,6 +170,13 @@ function showForm(coord?: {
       })
       return
     }
+  }
+
+  if (isEditCoordinateMode.value) {
+    isEditCoordinateMode.value = false
+    document.querySelector(".p-drawer")?.classList.remove("!hidden")
+    document.querySelector(".p-drawer-mask")?.classList.remove("!hidden")
+    return
   }
 
   if (layerAsInput.length === 0) {
@@ -335,6 +343,22 @@ onBeforeUnmount(async () => {
 
   map.remove()
 })
+
+function handleEditCoordinate() {
+  document.querySelector(".p-drawer")?.classList.add("!hidden")
+  document.querySelector(".p-drawer-mask")?.classList.add("!hidden")
+
+  isEditCoordinateMode.value = true
+}
+
+function editCoordinateWithCurrentLocation() {
+  const coordinate = {
+    lng: coords.value.longitude,
+    lat: coords.value.latitude,
+  }
+
+  showForm(coordinate)
+}
 
 onMounted(async () => {
   if (selected == null) {
@@ -655,6 +679,10 @@ onMounted(async () => {
               triggerBackup()
               closeCallback()
             }"
+
+            @edit-coordinate="() => {
+              handleEditCoordinate()
+            }"
           />
         </div>
       </template>
@@ -688,13 +716,13 @@ onMounted(async () => {
           </Button>
         </div>
 
-        <div class="absolute bottom-0 left-0 z-10 rounded-lg p-2">
+        <div v-if="!isEditCoordinateMode" class="absolute bottom-0 left-0 z-10 rounded-lg p-2">
           <Button class="" severity="secondary" size="small" @click="layerManagerVisible = true">
             <i class="i-[solar--layers-minimalistic-bold] text-xl" />
           </Button>
         </div>
 
-        <div class="absolute bottom-0 right-0 z-10 rounded-lg p-2">
+        <div v-if="!isEditCoordinateMode" class="absolute bottom-0 right-0 z-10 rounded-lg p-2">
           <Button class="" severity="secondary" size="small" @click="zoomToPosition">
             <i class="i-[solar--target-line-duotone] text-xl" />
             {{ positionAccuracy.toLocaleString("id-ID") }} m
@@ -728,7 +756,7 @@ onMounted(async () => {
                       clickedPosition.visible = false
                     }"
                   >
-                    Add data here
+                    {{ isEditCoordinateMode ? 'Use this location' : 'Add data here' }}
                   </Button>
                   <Button
                     text size="small" style="transform: translateX(8px)" @click="() => {
@@ -749,32 +777,49 @@ onMounted(async () => {
         </TransitionFade>
         <div id="map" class="map relative size-full" />
       </div>
-      <div class="box-border flex grow-0 justify-between space-x-4 px-6 py-4">
-        <Button
-          severity="primary" size="small" variant="text" @click="async () => {
-            if (selectedProject == null) {
-              return
-            }
 
-            await submitDataCloud(selectedProject.id, toast)
-          }"
-        >
-          <div class="i-[solar--plain-bold]" />
-          Submit
-        </Button>
+      <TransitionFade>
+        <KeepAlive>
+          <template v-if="!isEditCoordinateMode">
+            <div class="box-border flex grow-0 justify-between space-x-4 px-6 py-4">
+              <Button
+                severity="primary" size="small" variant="text" @click="async () => {
+                  if (selectedProject == null) {
+                    return
+                  }
 
-        <Button severity="primary" size="small" variant="text" @click="showDataVisible = true">
-          Show data
-        </Button>
+                  await submitDataCloud(selectedProject.id, toast)
+                }"
+              >
+                <div class="i-[solar--plain-bold]" />
+                Submit
+              </Button>
 
-        <Button
-          severity="primary" size="small" @click="() => {
-            showForm()
-          }"
-        >
-          Add data
-        </Button>
-      </div>
+              <Button severity="primary" size="small" variant="text" @click="showDataVisible = true">
+                Show data
+              </Button>
+
+              <Button
+                severity="primary" size="small" @click="() => {
+                  showForm()
+                }"
+              >
+                Add data
+              </Button>
+            </div>
+          </template>
+          <template v-else>
+            <div class="absolute bottom-10 left-1/2 -translate-x-1/2">
+              <Button
+                size="small"
+                @click="editCoordinateWithCurrentLocation"
+              >
+                Use my location
+              </Button>
+            </div>
+          </template>
+        </KeepAlive>
+      </TransitionFade>
     </main>
   </div>
 </template>
