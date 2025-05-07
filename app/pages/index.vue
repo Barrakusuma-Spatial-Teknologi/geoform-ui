@@ -194,7 +194,6 @@ async function exportGeoJSON() {
                   selectedProjectId = project.id
                   selectedProjectIndex = index
                   projectOptionVisible = true
-                  projectOptionPopoverRef?.toggle(e)
                 }"
               >
                 <template #icon>
