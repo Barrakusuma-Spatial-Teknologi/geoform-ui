@@ -44,10 +44,10 @@ const initialValues = computed(() => {
 </script>
 
 <template>
-  <div class="box-border flex size-full flex-col rounded-lg bg-surface-100 p-4 dark:bg-surface-800">
-    <label class="text-sm" :class="[props.itemValue?.config.required ? 'required' : '']">
-      {{ props.itemValue?.config.name }}
-    </label>
+  <div class="box-border flex size-full flex-col rounded-lg bg-surface-200 p-4 dark:bg-surface-900">
+    <div class="mb-5 font-bold" :class="[props.itemValue?.config.required ? 'required' : '']">
+      Add item of {{ props.itemValue?.config.name }}
+    </div>
     <PvForm
       v-slot="$form"
       ref="formRef" :initial-values="initialValues || {}" class="flex w-full grow flex-col"
