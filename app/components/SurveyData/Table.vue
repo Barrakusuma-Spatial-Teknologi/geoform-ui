@@ -131,12 +131,18 @@ onMounted(async () => {
       :value="data"
       :loading="isLoadingData"
       filter-display="menu"
+      size="small"
     >
       <template v-if="allFieldsVisible">
         <template v-for="field in fields" :key="field.key">
           <Column :field="field.name" :header="field.name" style="min-width: 150px">
             <template v-if="field.type === FieldType.IMAGE" #body="slotProps">
               <Image :src="slotProps.data[field.name]" alt="Image" width="100" preview />
+            </template>
+            <template v-else-if="field.type === FieldType.NESTED" #body="slotProps">
+              <div>
+                {{ slotProps.data[field.name].length }} <span class="text-sm">items</span>
+              </div>
             </template>
           </Column>
         </template>
@@ -157,7 +163,9 @@ onMounted(async () => {
         :show-filter-menu="true"
       >
         <template #body="slotProps">
-          <div> {{ slotProps.data.status }} </div>
+          <div :class="slotProps.data.status === 'Submitted' ? 'text-primary' : ''">
+            {{ slotProps.data.status }}
+          </div>
         </template>
         <template #filter="{ filterModel }">
           <MultiSelect
@@ -222,7 +230,3 @@ onMounted(async () => {
     </Paginator>
   </div>
 </template>
-
-<style scoped>
-
-</style>
