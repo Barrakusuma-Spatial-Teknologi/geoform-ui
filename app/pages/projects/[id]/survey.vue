@@ -173,9 +173,28 @@ function completeDraw(step: number) {
 
   drawGeometry.setMode("render")
   isDrawGeometryMode.value = false
+
   const [firstFeature] = features.value
-  if (firstFeature) {
-    showForm(firstFeature.geometry)
+  if (!firstFeature) {
+    return
+  }
+
+  const snapshots = drawGeometry.getSnapshotFeature(firstFeature.id as string | number)
+
+  if (!snapshots) {
+    return
+  }
+
+  const index = features.value.findIndex((f) => f.id === snapshots.id)
+
+  if (index >= 0) {
+    features.value[index] = snapshots
+  }
+
+  const [selectedFeature] = features.value
+
+  if (selectedFeature) {
+    showForm(selectedFeature.geometry)
   }
   features.value = []
 }
