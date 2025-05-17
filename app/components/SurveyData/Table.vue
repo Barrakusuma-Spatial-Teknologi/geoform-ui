@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { Geometry } from "geojson"
 import { FilterMatchMode } from "@primevue/core/api"
 import SearchField from "~/components/SurveyData/SearchField.vue"
 import { type FieldConfig, FieldOptionSearchable, FieldType } from "~/composables/project/model/project"
@@ -10,7 +11,7 @@ const props = defineProps<{
 }>()
 
 const emits = defineEmits<{
-  edit: [dataId: string, coordinate: [number, number]]
+  edit: [dataId: string, geometry: Geometry]
 }>()
 
 const isLoadingData = ref(false)
@@ -196,7 +197,7 @@ onMounted(async () => {
             </Button>
             <Button
               severity="secondary" variant="text" size="small" @click="() => {
-                emits('edit', slotProps.data.id, slotProps.data.geom.coordinates as [number, number])
+                emits('edit', slotProps.data.id, slotProps.data.geom)
               }"
             >
               Edit

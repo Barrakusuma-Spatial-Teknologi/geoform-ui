@@ -1,14 +1,18 @@
 <script setup lang="ts">
 import type { ExportProgress } from "dexie-export-import"
-import type { Point } from "geojson"
+import type { Geometry, Point } from "geojson"
 import type { GeoJSONSource, LayerSpecification, StyleSpecification } from "maplibre-gl"
+import type { DrawingAction } from "~/components/DrawGeometry/model"
 import type { FieldConfig } from "~/composables/project/model/project"
 import type { ProjectDataFeature } from "~/composables/project/model/project-data"
 import bbox from "@turf/bbox"
+import centroid from "@turf/centroid"
 import { UseTimeAgo } from "@vueuse/components"
 import { orderBy } from "es-toolkit"
 import { get } from "es-toolkit/compat"
 import { Map as MglMap } from "maplibre-gl"
+import { type GeoJSONStoreFeatures, TerraDraw, TerraDrawPolygonMode, TerraDrawRenderMode, TerraDrawSelectMode } from "terra-draw"
+import { TerraDrawMapLibreGLAdapter } from "terra-draw-maplibre-gl-adapter"
 import { match } from "ts-pattern"
 import { submitDataCloud } from "~/components/SurveyData/submitDataCloud"
 import { usePrimaryColor } from "~/composables/color"
@@ -121,28 +125,108 @@ const participantLocation = computed<[number, number] | undefined>(() => {
 const positionAccuracy = computed(() => coords.value.accuracy)
 
 const formVisible = ref(false)
-const selectedCoordinate = ref({
-  lng: 0,
-  lat: 0,
+const selectedGeometry = ref<Geometry>({
+  type: "Point",
+  coordinates: [0, 0],
 })
 const inputTags = ref<string[]>()
 const isEditCoordinateMode = ref<boolean>(false)
 
-function showForm(coord?: {
-  lng: number
-  lat: number
-}) {
-  if (coord != null) {
-    selectedCoordinate.value = coord
+let drawGeometry!: TerraDraw
+const isDrawGeometryMode = ref<boolean>(false)
+const features = ref<GeoJSONStoreFeatures[]>([])
+
+function startDrawGeometry() {
+  isDrawGeometryMode.value = true
+  drawGeometry.setMode("polygon")
+}
+
+function resetDrawGeometry() {
+  for (const feature of features.value) {
+    drawGeometry.removeFeatures([feature.id] as string[])
+  }
+  features.value = []
+  drawGeometry.setMode("polygon")
+}
+
+function cancelDraw(step: number) {
+  if (step === 3) {
+    drawGeometry.setMode("render")
+    return
+  }
+  if (step === 2) {
+    drawGeometry.setMode("render")
+    drawGeometry.setMode("polygon")
+    return
+  }
+
+  isDrawGeometryMode.value = false
+  resetDrawGeometry()
+  drawGeometry.setMode("render")
+}
+
+function completeDraw(step: number) {
+  if (step === 1) {
+    drawGeometry.setMode("render")
+    return
+  }
+
+  drawGeometry.setMode("render")
+  isDrawGeometryMode.value = false
+  const [firstFeature] = features.value
+  if (firstFeature) {
+    showForm(firstFeature.geometry)
+  }
+  features.value = []
+}
+
+function handleDrawUpdate(action: DrawingAction, step?: number) {
+  switch (action) {
+    case "cancel":
+      cancelDraw(step!)
+      break
+
+    case "reset":
+      resetDrawGeometry()
+      break
+
+    case "complete":
+      completeDraw(step!)
+      break
+
+    case "edit":
+      drawGeometry.setMode("select")
+      break
+
+    case "next":
+      drawGeometry.setMode("render")
+      break
+  }
+}
+
+function showForm(geometryGeojson?: Geometry) {
+  if (geometryGeojson != null) {
+    selectedGeometry.value = geometryGeojson
   }
   else {
-    selectedCoordinate.value = {
-      lng: coords.value.longitude,
-      lat: coords.value.latitude,
+    selectedGeometry.value = {
+      type: "Point",
+      coordinates: [coords.value.longitude, coords.value.latitude],
     }
   }
 
-  const pixelCoord = map.project([selectedCoordinate.value.lng, selectedCoordinate.value.lat])
+  let pixelCoord
+  match(selectedGeometry.value)
+    .with({ type: "Point" }, (g) => {
+      const longitude = g.coordinates[0] ?? 0
+      const latitude = g.coordinates[1] ?? 0
+      pixelCoord = map.project([longitude, latitude])
+    })
+    .with({ type: "Polygon" }, (g) => {
+      const centerPoint = centroid(g)
+      const [lng = 0, lat = 0] = centerPoint.geometry.coordinates
+      pixelCoord = map.project([lng, lat])
+    })
 
   for (const layer of layerAsValidation) {
     const features = map.queryRenderedFeatures(pixelCoord, {
@@ -352,12 +436,13 @@ function handleEditCoordinate() {
 }
 
 function editCoordinateWithCurrentLocation() {
-  const coordinate = {
-    lng: coords.value.longitude,
-    lat: coords.value.latitude,
-  }
+  const long = coords.value.longitude
+  const lat = coords.value.latitude
 
-  showForm(coordinate)
+  showForm({
+    type: "Point",
+    coordinates: [long, lat],
+  })
 }
 
 onMounted(async () => {
@@ -529,9 +614,10 @@ onMounted(async () => {
         },
       },
       {
-        id: "surveyData",
+        id: "surveyData-point",
         type: "circle",
         source: "surveyData",
+        filter: ["==", ["geometry-type"], "Point"],
         paint: {
           "circle-color": "#fbf341",
           "circle-radius": [
@@ -547,6 +633,26 @@ onMounted(async () => {
               ["cos", ["*", ["get", "lat"], ["/", Math.PI, 180]]],
             ],
           ],
+        },
+      },
+      {
+        id: "surveyData-polygon",
+        type: "fill",
+        source: "surveyData",
+        filter: ["==", ["geometry-type"], "Polygon"],
+        paint: {
+          "fill-color": "#FFE500",
+          "fill-opacity": 0.2,
+        },
+      },
+      {
+        id: "surveyData-polygon-outline",
+        type: "line",
+        source: "surveyData",
+        filter: ["==", ["geometry-type"], "Polygon"],
+        paint: {
+          "line-color": "#FFE500",
+          "line-width": 1,
         },
       },
     ] as LayerSpecification[],
@@ -595,29 +701,102 @@ onMounted(async () => {
 
   zoomToPosition()
 
-  map.on("click", (e) => {
-    clickedPosition.value = {
-      visible: true,
-      coordinate: {
-        lng: e.lngLat.lng,
-        lat: e.lngLat.lat,
-      },
-      pixel: {
-        x: e.point.x,
-        y: e.point.y,
-      },
-    }
+  if (isDrawGeometryMode.value === false) {
+    map.on("click", (e) => {
+      clickedPosition.value = {
+        visible: true,
+        coordinate: {
+          lng: e.lngLat.lng,
+          lat: e.lngLat.lat,
+        },
+        pixel: {
+          x: e.point.x,
+          y: e.point.y,
+        },
+      }
+    })
+
+    map.on("move", () => {
+      if (!clickedPosition.value) {
+        return
+      }
+
+      const projected = map.project(clickedPosition.value.coordinate)
+      clickedPosition.value.pixel = {
+        x: projected.x,
+        y: projected.y,
+      }
+    })
+  }
+
+  const polygonStyles: Record<string, string | number> = {
+    fillColor: "#FFE500",
+    fillOpacity: 0.2,
+    outlineColor: "#FFE500",
+    outlineWidth: 1,
+  }
+
+  // Create Terra Draw
+  drawGeometry = new TerraDraw({
+    adapter: new TerraDrawMapLibreGLAdapter({ map }),
+    modes: [
+      new TerraDrawPolygonMode({
+        styles: polygonStyles,
+      }),
+      new TerraDrawRenderMode({
+        modeName: "render",
+        styles: polygonStyles,
+      }),
+      new TerraDrawSelectMode({
+        allowManualDeselection: true,
+        flags: {
+          polygon: {
+            feature: {
+              draggable: true,
+              coordinates: {
+                midpoints: {
+                  draggable: true,
+                },
+                draggable: true,
+                snappable: true,
+              },
+            },
+          },
+        },
+      }),
+    ],
   })
 
-  map.on("move", () => {
-    if (!clickedPosition.value) {
-      return
-    }
+  drawGeometry.start()
 
-    const projected = map.project(clickedPosition.value.coordinate)
-    clickedPosition.value.pixel = {
-      x: projected.x,
-      y: projected.y,
+  drawGeometry.on(
+    "finish",
+    (
+      id: string | number,
+      context: {
+        action: string
+        mode: string
+      },
+    ) => {
+      if (context.action === "draw") {
+        const feature = drawGeometry.getSnapshotFeature(id)
+        if (feature) {
+          features.value.push(feature)
+        }
+      }
+    },
+  )
+
+  drawGeometry.on("select", (id: string | number) => {
+    const isAllowed = features.value.some((f) => f.id === id)
+
+    if (!isAllowed) {
+      drawGeometry.deselectFeature(id)
+      toast.add({
+        summary: "Editing Not Allowed on Selected Polygon",
+        severity: "error",
+        life: 3000,
+      })
     }
   })
 })
@@ -659,23 +838,25 @@ onMounted(async () => {
             :project-data-id="projectDataIdSelected"
             :project-id="projectIndex"
             :fields="selectedProject?.fields ?? []"
-            :coordinate="selectedCoordinate"
+            :geometry="selectedGeometry"
             :participant-location="participantLocation"
             :tags="inputTags"
             @close="() => {
               projectDataIdSelected = undefined
-              selectedCoordinate = {
-                lng: 0,
-                lat: 0,
+              selectedGeometry = {
+                type: 'Point',
+                coordinates: [0, 0],
               }
+              resetDrawGeometry()
               closeCallback()
             }"
             @save="() => {
               projectDataIdSelected = undefined
-              selectedCoordinate = {
-                lng: 0,
-                lat: 0,
+              selectedGeometry = {
+                type: 'Point',
+                coordinates: [0, 0],
               }
+              features = []
               triggerBackup()
               closeCallback()
             }"
@@ -695,10 +876,7 @@ onMounted(async () => {
       <SurveyDataTable
         v-if="selectedProject != null" :project-id="selectedProject.id" @edit="(dataId, geom) => {
           projectDataIdSelected = dataId
-          selectedCoordinate = {
-            lng: geom[0],
-            lat: geom[1],
-          }
+          selectedGeometry = geom,
           formVisible = true
           showDataVisible = false
         }"
@@ -716,13 +894,21 @@ onMounted(async () => {
           </Button>
         </div>
 
-        <div v-if="!isEditCoordinateMode" class="absolute bottom-0 left-0 z-10 rounded-lg p-2">
+        <div v-if="!isEditCoordinateMode && !isDrawGeometryMode" class="absolute bottom-0 left-0 z-10 rounded-lg p-2">
           <Button class="" severity="secondary" size="small" @click="layerManagerVisible = true">
             <i class="i-[solar--layers-minimalistic-bold] text-xl" />
           </Button>
         </div>
 
-        <div v-if="!isEditCoordinateMode" class="absolute bottom-0 right-0 z-10 rounded-lg p-2">
+        <div v-if="!isEditCoordinateMode && !isDrawGeometryMode" class="absolute bottom-10 left-0 z-10 rounded-lg p-2">
+          <Button
+            class="" severity="secondary" size="small" @click="startDrawGeometry"
+          >
+            <i class="i-[solar--pen-linear] text-xl" />
+          </Button>
+        </div>
+
+        <div v-if="!isEditCoordinateMode && !isDrawGeometryMode" class="absolute bottom-0 right-0 z-10 rounded-lg p-2">
           <Button class="" severity="secondary" size="small" @click="zoomToPosition">
             <i class="i-[solar--target-line-duotone] text-xl" />
             {{ positionAccuracy.toLocaleString("id-ID") }} m
@@ -732,7 +918,7 @@ onMounted(async () => {
         <TransitionFade>
           <KeepAlive>
             <div
-              v-if="clickedPosition.visible"
+              v-if="clickedPosition.visible && !isDrawGeometryMode"
               class="absolute left-0 top-0 z-[4] flex w-[250px] flex-col px-2"
               :style="{
                 transform: `translate(${clickedPosition.pixel.x}px, ${clickedPosition.pixel.y}px) translate(-50%, -100%)`,
@@ -752,7 +938,10 @@ onMounted(async () => {
                     size="small"
                     fluid
                     @click="() => {
-                      showForm(clickedPosition.coordinate)
+                      showForm(
+                        { type: 'Point',
+                          coordinates: [clickedPosition.coordinate.lng, clickedPosition.coordinate.lat],
+                        });
                       clickedPosition.visible = false
                     }"
                   >
@@ -780,7 +969,7 @@ onMounted(async () => {
 
       <TransitionFade>
         <KeepAlive>
-          <template v-if="!isEditCoordinateMode">
+          <template v-if="!isEditCoordinateMode && !isDrawGeometryMode">
             <div class="box-border flex grow-0 justify-between space-x-4 px-6 py-4">
               <Button
                 severity="primary" size="small" variant="text" @click="async () => {
@@ -807,6 +996,12 @@ onMounted(async () => {
                 Add data
               </Button>
             </div>
+          </template>
+          <template v-else-if="!isEditCoordinateMode && isDrawGeometryMode">
+            <DrawGeometry
+              :features="features"
+              @update="handleDrawUpdate"
+            />
           </template>
           <template v-else>
             <div class="absolute bottom-10 left-1/2 -translate-x-1/2">
