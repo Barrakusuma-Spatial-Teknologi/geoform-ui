@@ -134,7 +134,7 @@ const isEditCoordinateMode = ref<boolean>(false)
 
 let drawGeometry!: TerraDraw
 const isDrawGeometryMode = ref<boolean>(false)
-const features = ref<GeoJSONStoreFeatures[]>([])
+const drawnFeatures = ref<GeoJSONStoreFeatures[]>([])
 
 function startDrawGeometry() {
   isDrawGeometryMode.value = true
@@ -142,10 +142,10 @@ function startDrawGeometry() {
 }
 
 function resetDrawGeometry() {
-  for (const feature of features.value) {
+  for (const feature of drawnFeatures.value) {
     drawGeometry.removeFeatures([feature.id] as string[])
   }
-  features.value = []
+  drawnFeatures.value = []
   drawGeometry.setMode("polygon")
 }
 
@@ -174,7 +174,7 @@ function completeDraw(step: number) {
   drawGeometry.setMode("render")
   isDrawGeometryMode.value = false
 
-  const [firstFeature] = features.value
+  const [firstFeature] = drawnFeatures.value
   if (!firstFeature) {
     return
   }
@@ -185,18 +185,18 @@ function completeDraw(step: number) {
     return
   }
 
-  const index = features.value.findIndex((f) => f.id === snapshots.id)
+  const index = drawnFeatures.value.findIndex((f) => f.id === snapshots.id)
 
   if (index >= 0) {
-    features.value[index] = snapshots
+    drawnFeatures.value[index] = snapshots
   }
 
-  const [selectedFeature] = features.value
+  const [selectedFeature] = drawnFeatures.value
 
   if (selectedFeature) {
     showForm(selectedFeature.geometry)
   }
-  features.value = []
+  drawnFeatures.value = []
 }
 
 function handleDrawUpdate(action: DrawingAction, step?: number) {
@@ -271,6 +271,14 @@ function showForm(geometryGeojson?: Geometry) {
         life: 3000,
         group: "bc",
       })
+
+      if (drawnFeatures.value) {
+        for (const feature of drawnFeatures.value) {
+          drawGeometry.removeFeatures([feature.id] as string[])
+        }
+        drawnFeatures.value = []
+        drawGeometry.setMode("render")
+      }
       return
     }
   }
@@ -806,14 +814,14 @@ onMounted(async () => {
       if (context.action === "draw") {
         const feature = drawGeometry.getSnapshotFeature(id)
         if (feature) {
-          features.value.push(feature)
+          drawnFeatures.value.push(feature)
         }
       }
     },
   )
 
   drawGeometry.on("select", (id: string | number) => {
-    const isAllowed = features.value.some((f) => f.id === id)
+    const isAllowed = drawnFeatures.value.some((f) => f.id === id)
 
     if (!isAllowed) {
       drawGeometry.deselectFeature(id)
@@ -881,7 +889,7 @@ onMounted(async () => {
                 type: 'Point',
                 coordinates: [0, 0],
               }
-              features = []
+              drawnFeatures = []
               triggerBackup()
               closeCallback()
             }"
@@ -1024,7 +1032,7 @@ onMounted(async () => {
           </template>
           <template v-else-if="!isEditCoordinateMode && isDrawGeometryMode">
             <DrawGeometry
-              :features="features"
+              :features="drawnFeatures"
               @update="handleDrawUpdate"
             />
           </template>
