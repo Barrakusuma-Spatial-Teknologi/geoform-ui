@@ -768,6 +768,12 @@ onMounted(async () => {
       }),
       new TerraDrawSelectMode({
         allowManualDeselection: true,
+        keyEvents: {
+          delete: null,
+          deselect: "Escape",
+          rotate: null,
+          scale: null,
+        },
         flags: {
           polygon: {
             feature: {
