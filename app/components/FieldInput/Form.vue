@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import type { Geometry } from "geojson"
 import type { NestedEditValue, NestedItemValue } from "./type"
 import type { ProjectDataFeature } from "~/composables/project/model/project-data"
 import { type FormSubmitEvent, Form as PvForm } from "@primevue/forms"
 import { zodResolver } from "@primevue/forms/resolvers/zod"
+import centroid from "@turf/centroid"
 import { get } from "es-toolkit/compat"
 import { createZodSchema } from "~/components/FieldInput/form-validation"
 import { type FieldConfig, type FieldConfigNested, FieldType } from "~/composables/project/model/project"
@@ -15,10 +17,7 @@ const props = defineProps<{
   projectId: string
   projectDataId?: string
   fields: FieldConfig[]
-  coordinate: {
-    lng: number
-    lat: number
-  }
+  geometry: Geometry
   participantLocation:
     [longitude: number, latitude: number] | undefined
   tags?: string[]
@@ -217,10 +216,7 @@ async function save(e: FormSubmitEvent) {
   }
 
   const feature: ProjectDataFeature = {
-    geom: {
-      type: "Point",
-      coordinates: [props.coordinate.lng, props.coordinate.lat],
-    },
+    geom: props.geometry,
     data: {},
   }
 
@@ -275,6 +271,16 @@ async function save(e: FormSubmitEvent) {
     }
     console.error(e)
   }
+}
+
+function createCentroid(geometry: Geometry) {
+  const centerPoint = centroid(geometry)
+  const [lng = 0, lat = 0] = centerPoint.geometry.coordinates
+
+  const longitudeDMS = convertDDToDMS(lng)
+  const latitudeDMS = convertDDToDMS(lat)
+
+  return `${longitudeDMS} ; ${latitudeDMS}`
 }
 
 function convertDDToDMS(decimalDegrees: number): string {
@@ -351,14 +357,25 @@ onDeactivated(() => {
               Location at
             </div>
 
-            <div class="flex items-center justify-between">
-              <div>
-                {{ convertDDToDMS(props.coordinate.lng) }} ; {{ convertDDToDMS(props.coordinate.lat) }}
-              </div>
+            <div class="flex items-center" :class="props.geometry.type === 'Point' ? 'justify-between' : ''">
+              <template
+                v-if="props.geometry.type === 'Point'
+                  && typeof props.geometry.coordinates[0] === 'number'
+                  && typeof props.geometry.coordinates[1] === 'number'"
+              >
+                <div>
+                  {{ convertDDToDMS(props.geometry.coordinates[0]) }} ; {{ convertDDToDMS(props.geometry.coordinates[1]) }}
+                </div>
 
-              <Button severity="secondary" variant="text" size="small" @click="emits('editCoordinate')">
-                <i class="i-[solar--pen-linear] text-lg" />
-              </Button>
+                <Button severity="secondary" variant="text" size="small" @click="emits('editCoordinate')">
+                  <i class="i-[solar--pen-linear] text-lg" />
+                </Button>
+              </template>
+              <template v-else>
+                <div>
+                  {{ createCentroid(props.geometry) }}
+                </div>
+              </template>
             </div>
           </li>
 
