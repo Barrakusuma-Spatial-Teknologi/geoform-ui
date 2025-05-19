@@ -890,6 +890,7 @@ onMounted(async () => {
                 coordinates: [0, 0],
               }
               drawnFeatures = []
+              drawGeometry.clear()
               triggerBackup()
               closeCallback()
             }"
