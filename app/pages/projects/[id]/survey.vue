@@ -141,11 +141,13 @@ function startDrawGeometry() {
   drawGeometry.setMode("polygon")
 }
 
-function resetDrawGeometry() {
-  for (const feature of drawnFeatures.value) {
-    drawGeometry.removeFeatures([feature.id] as string[])
-  }
+function clearGeometry() {
+  drawGeometry.clear()
   drawnFeatures.value = []
+}
+
+function resetDrawGeometry() {
+  clearGeometry()
   drawGeometry.setMode("polygon")
 }
 
@@ -161,7 +163,7 @@ function cancelDraw(step: number) {
   }
 
   isDrawGeometryMode.value = false
-  resetDrawGeometry()
+  clearGeometry()
   drawGeometry.setMode("render")
 }
 
@@ -175,6 +177,7 @@ function completeDraw(step: number) {
   isDrawGeometryMode.value = false
 
   const [firstFeature] = drawnFeatures.value
+
   if (!firstFeature) {
     return
   }
@@ -196,6 +199,7 @@ function completeDraw(step: number) {
   if (selectedFeature) {
     showForm(selectedFeature.geometry)
   }
+
   drawnFeatures.value = []
 }
 
@@ -273,10 +277,7 @@ function showForm(geometryGeojson?: Geometry) {
       })
 
       if (drawnFeatures.value) {
-        for (const feature of drawnFeatures.value) {
-          drawGeometry.removeFeatures([feature.id] as string[])
-        }
-        drawnFeatures.value = []
+        clearGeometry()
         drawGeometry.setMode("render")
       }
       return
@@ -813,25 +814,15 @@ onMounted(async () => {
     ) => {
       if (context.action === "draw") {
         const feature = drawGeometry.getSnapshotFeature(id)
-        if (feature) {
-          drawnFeatures.value.push(feature)
+
+        if (!feature) {
+          return
         }
+
+        drawnFeatures.value.push(feature)
       }
     },
   )
-
-  drawGeometry.on("select", (id: string | number) => {
-    const isAllowed = drawnFeatures.value.some((f) => f.id === id)
-
-    if (!isAllowed) {
-      drawGeometry.deselectFeature(id)
-      toast.add({
-        summary: "Editing Not Allowed on Selected Polygon",
-        severity: "error",
-        life: 3000,
-      })
-    }
-  })
 })
 </script>
 
@@ -880,7 +871,7 @@ onMounted(async () => {
                 type: 'Point',
                 coordinates: [0, 0],
               }
-              resetDrawGeometry()
+              clearGeometry()
               closeCallback()
             }"
             @save="() => {
@@ -889,8 +880,7 @@ onMounted(async () => {
                 type: 'Point',
                 coordinates: [0, 0],
               }
-              drawnFeatures = []
-              drawGeometry.clear()
+              clearGeometry()
               triggerBackup()
               closeCallback()
             }"
