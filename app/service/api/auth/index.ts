@@ -7,6 +7,7 @@ export interface LoginResponse {
 export interface UserInfoResponse {
   id: string
   username: string
+  roleNames: string[]
 }
 
 async function login(username: string, password: string) {

@@ -17,15 +17,13 @@ export const useAuth = defineStore("authStore", () => {
   const state = useLocalStorage("authInfo", {
     username: "",
     id: "",
+    roleNames: [] as string[],
   })
 
   const isValid = computed(() => jwtToken.value != null)
 
   const login = async (username: string, password: string) => {
     jwtToken.value = await AuthService.login(username, password)
-    // if (jwtClaims.value!.sub !== userId.value) {
-    //   await useDb().delete({ disableAutoOpen: false })
-    // }
 
     userId.value = jwtClaims.value!.sub
   }
@@ -34,6 +32,7 @@ export const useAuth = defineStore("authStore", () => {
     const userinfo = (await AuthService.getUserInfo(`Bearer ${jwtToken.value}`))
     state.value.username = userinfo.username
     state.value.id = userinfo.id
+    state.value.roleNames = userinfo.roleNames
   }
 
   const logout = async () => {

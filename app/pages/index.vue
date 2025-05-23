@@ -3,6 +3,7 @@ import type { Feature, FeatureCollection } from "geojson"
 import { UseTimeAgo } from "@vueuse/components"
 import { get } from "radash"
 import ProjectOptionDialog from "~/components/ProjectOptionDialog.vue"
+import { useAuth } from "~/composables/auth"
 import { FieldType } from "~/composables/project/model/project"
 import { useProjectStore } from "~/composables/project/project"
 import { useProjectData } from "~/composables/project/project-data"
@@ -17,6 +18,7 @@ const {
   projects,
   remove,
 } = useProjectStore()
+const { state } = useAuth()
 
 const projectOptionVisible = ref(false)
 
@@ -225,7 +227,7 @@ async function exportGeoJSON() {
       show-close-icon
     >
       <ul class="addProjectList">
-        <li v-ripple @click="createNew">
+        <li v-if="state.roleNames.includes('ADMIN') || state.roleNames.includes('SUPERADMIN')" v-ripple @click="createNew">
           <div class="icon i-[solar--add-square-bold]" />
           <div>Create new project</div>
         </li>
