@@ -57,6 +57,9 @@ const selectedProject = ref(toRaw(selected))
 const selectedProjectFieldValue = ref<(FieldConfig & {
   value: any
 })[]>([])
+const projectIsInCloud = computed(() => {
+  return selectedProject.value?.syncAt != null
+})
 
 layoutTitle.value = selectedProject.value?.name
 selectedProjectFieldValue.value = selected?.fields.map((field) => ({
@@ -783,7 +786,9 @@ onMounted(async () => {
           <template v-if="!isEditCoordinateMode">
             <div class="box-border flex grow-0 justify-between space-x-4 px-6 py-4">
               <Button
-                severity="primary" size="small" variant="text" @click="async () => {
+                severity="primary" size="small" variant="text"
+                :disabled="!projectIsInCloud"
+                @click="async () => {
                   if (selectedProject == null) {
                     return
                   }
