@@ -308,7 +308,7 @@ async function uploadImageNeedSync(projectId: string, chunkedCount: number = 3, 
 }
 
 export interface SyncProjectDataPayload {
-  deletedKeys: string[]
+  deletedKeys: Record<string, string>[] | []
   modified: ProjectDataUpdatePayload[]
   projectVersionId: string
 }
@@ -326,7 +326,7 @@ async function countImageNeedSync(projectId: string) {
 }
 
 export interface SyncProjectDataPayload {
-  deletedKeys: string[]
+  deletedKeys: Record<string, string>[] | []
   modified: ProjectDataUpdatePayload[]
   projectVersionId: string
 }
@@ -339,7 +339,9 @@ async function sendSyncRequest(projectId: string, payload: SyncProjectDataPayloa
           ...row,
           id: UUID.parse(row.id).bytes,
         })),
-        deletedKeys: payload.deletedKeys.map((row) => UUID.parse(row).bytes),
+        deletedKeys: payload.deletedKeys.map((row) => ({
+          id: row.id ? UUID.parse(row.id).bytes : [],
+        })),
         projectVersionId: payload.projectVersionId,
       })
 
@@ -395,7 +397,7 @@ async function syncProjectData(projectId: string, msgPack?: boolean) {
 
   const payload = {
     modified: rows,
-    deletedKeys,
+    deletedKeys: deletedKeys.map((id) => ({ id })),
     projectVersionId: project.versionId,
   }
   await sendSyncRequest(projectId, payload, msgPack)
@@ -516,7 +518,9 @@ async function syncProjectDataDeleted(projectId: string, msgPack?: boolean) {
 
   const payload = {
     modified: [],
-    deletedKeys: rows.map((row) => row.dataId),
+    deletedKeys: rows.map((row) => ({
+      id: row.dataId,
+    })),
     projectVersionId: project.versionId,
   } satisfies SyncProjectDataPayload
 
