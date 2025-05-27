@@ -8,6 +8,7 @@ export interface ProjectData<D extends (string | ProjectDataFeature) = (string |
   syncAt?: number
   tags?: string[]
   participantLocation?: [number, number]
+  version?: number
 }
 
 export interface ProjectDataImage {

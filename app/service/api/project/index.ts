@@ -307,8 +307,13 @@ async function uploadImageNeedSync(projectId: string, chunkedCount: number = 3, 
   return rows
 }
 
+interface DeletedKey {
+  id: string
+  version?: number
+}
+
 export interface SyncProjectDataPayload {
-  deletedKeys: string[]
+  deletedKeys: DeletedKey[] | []
   modified: ProjectDataUpdatePayload[]
   projectVersionId: string
 }
@@ -326,7 +331,7 @@ async function countImageNeedSync(projectId: string) {
 }
 
 export interface SyncProjectDataPayload {
-  deletedKeys: string[]
+  deletedKeys: DeletedKey[] | []
   modified: ProjectDataUpdatePayload[]
   projectVersionId: string
 }
@@ -339,30 +344,34 @@ async function sendSyncRequest(projectId: string, payload: SyncProjectDataPayloa
           ...row,
           id: UUID.parse(row.id).bytes,
         })),
-        deletedKeys: payload.deletedKeys.map((row) => UUID.parse(row).bytes),
+        deletedKeys: payload.deletedKeys.map((row) => ({
+          id: UUID.parse(row.id).bytes,
+          version: row.version,
+        })),
         projectVersionId: payload.projectVersionId,
       })
 
-      await useMainServiceFetch(`/projects/${projectId}/data/sync`, {
+      const result = await useMainServiceFetch(`/projects/${projectId}/data/sync`, {
         method: "POST",
         body: msgPackBody,
         headers: {
           "Content-Type": "application/msgpack",
         },
       })
-      return // Exit if MessagePack succeeds
+      return result.data // Exit if MessagePack succeeds
     }
     catch (e) {
       // eslint-disable-next-line no-console
       console.debug(`Failed to send MessagePack, falling back to JSON: ${get(e, "message")}`)
     }
   }
-
   // Fallback to JSON if MessagePack fails or is not requested
-  await useMainServiceFetch(`/projects/${projectId}/data/sync`, {
+  const result = await useMainServiceFetch(`/projects/${projectId}/data/sync`, {
     method: "POST",
     body: payload,
   })
+
+  return result.data
 }
 
 async function syncProjectData(projectId: string, msgPack?: boolean) {
@@ -395,7 +404,7 @@ async function syncProjectData(projectId: string, msgPack?: boolean) {
 
   const payload = {
     modified: rows,
-    deletedKeys,
+    deletedKeys: deletedKeys.map((id) => ({ id })),
     projectVersionId: project.versionId,
   }
   await sendSyncRequest(projectId, payload, msgPack)
@@ -434,7 +443,6 @@ async function syncProjectDataUpdate(projectId: string, chunkedCount?: number, p
     return
   }
 
-  const modifiedDataId = modified.map((row) => row.dataId)
   const modifiedRowId = modified.map((row) => row.id)
 
   const projectDataStore = useProjectData(projectId)
@@ -463,14 +471,17 @@ async function syncProjectDataUpdate(projectId: string, chunkedCount?: number, p
       projectVersionId: project.versionId,
     } satisfies SyncProjectDataPayload
 
-    await sendSyncRequest(projectId, payload, true)
+    const result = await sendSyncRequest(projectId, payload, true) as [string, number][]
 
     currentChunk += 1
 
     const db = useDb()
+
     try {
       await db.transaction("rw", db.projectData, async (tx) => {
-        await tx.projectData.where("id").anyOf(modifiedDataId).modify({ syncAt })
+        for (const [id, version] of result) {
+          await tx.projectData.where("id").equals(id).modify({ syncAt, version })
+        }
       })
     }
     catch (e) {
@@ -478,7 +489,6 @@ async function syncProjectDataUpdate(projectId: string, chunkedCount?: number, p
       console.debug("ignoring update error status because data already sent")
       captureToCloud(e)
     }
-
     try {
       await db.transaction("rw", db.changesHistory, async (tx) => {
         await tx.changesHistory.where("id").anyOf(modifiedRowId).delete()
@@ -508,7 +518,6 @@ async function syncProjectDataDeleted(projectId: string, msgPack?: boolean) {
   if (project?.versionId == null) {
     throw new Error("need to sync")
   }
-
   const rows = await useDb().changesHistory.filter((row) => row.projectId === projectId && row.changeType === TableChangeType.Delete).toArray()
   if (rows.length === 0) {
     return
@@ -516,7 +525,10 @@ async function syncProjectDataDeleted(projectId: string, msgPack?: boolean) {
 
   const payload = {
     modified: [],
-    deletedKeys: rows.map((row) => row.dataId),
+    deletedKeys: rows.map((row) => ({
+      id: row.dataId,
+      version: row.version,
+    })),
     projectVersionId: project.versionId,
   } satisfies SyncProjectDataPayload
 
