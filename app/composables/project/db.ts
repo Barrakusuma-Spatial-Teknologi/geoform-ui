@@ -34,6 +34,7 @@ export interface TableChange {
   dataId: string
   changeType: TableChangeType
   updatedAt: number
+  version?: number
 }
 
 type DatabaseInstance = Dexie & {
@@ -87,6 +88,11 @@ export function migrateDatabase() {
   db.version(5).stores({
     projectData: "id, projectId, data, createdBy, updatedAt, syncAt, participantLocation, tags",
     projectTags: "++, projectId, data",
+  })
+
+  db.version(6).stores({
+    projectData: "id, projectId, data, createdBy, updatedAt, syncAt, participantLocation, tags, version",
+    changesHistory: "id, table, projectId, dataId, changeType, updatedAt, version",
   })
 }
 
@@ -163,10 +169,10 @@ export function trackProjectDataChanges() {
             ...existingChange,
             changeType: TableChangeType.Delete,
             updatedAt: Date.now(),
+            version: existingProjectData.version,
           })
           return
         }
-
         await db.changesHistory.add({
           id: generateId(),
           changeType: TableChangeType.Delete,
@@ -174,6 +180,7 @@ export function trackProjectDataChanges() {
           dataId: data.dataId,
           table: "projectData",
           updatedAt: Date.now(),
+          version: existingProjectData.version,
         } as TableChange)
       }
       else {
