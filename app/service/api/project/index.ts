@@ -443,7 +443,6 @@ async function syncProjectDataUpdate(projectId: string, chunkedCount?: number, p
     return
   }
 
-  const modifiedDataId = modified.map((row) => row.dataId)
   const modifiedRowId = modified.map((row) => row.id)
 
   const projectDataStore = useProjectData(projectId)
@@ -480,10 +479,8 @@ async function syncProjectDataUpdate(projectId: string, chunkedCount?: number, p
 
     try {
       await db.transaction("rw", db.projectData, async (tx) => {
-        await tx.projectData.where("id").anyOf(modifiedDataId).modify({ syncAt })
-
         for (const [id, version] of result) {
-          await tx.projectData.where("id").equals(id).modify({ version })
+          await tx.projectData.where("id").equals(id).modify({ syncAt, version })
         }
       })
     }
