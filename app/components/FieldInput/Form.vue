@@ -53,18 +53,27 @@ let imageOriginalKey: Record<string, string> = {}
 
 const nestedFieldsData = ref<Record<string, NestedItemValue[]>>({})
 const projectDataTags = ref<string[]>([])
-
-async function resetFields() {
+async function setDataTags() {
   const data = props.projectDataId != null ? await projectData.getById(props.projectDataId) : {}
-  const init: Record<string, any> = {}
 
   const existingTags = get(data, "tags") as string[] | undefined
-  if (existingTags != null) {
+  if (existingTags != null && (props.tags == null || props.tags.length === 0)) {
     projectDataTags.value = existingTags
   }
   else {
     projectDataTags.value = props.tags ?? []
   }
+}
+
+watch(() => props.tags, async () => {
+  await setDataTags()
+})
+
+async function resetFields() {
+  const data = props.projectDataId != null ? await projectData.getById(props.projectDataId) : {}
+  const init: Record<string, any> = {}
+
+  await setDataTags()
 
   imageOriginalKey = {}
   fieldValues.value = await Promise.all(
@@ -207,7 +216,12 @@ function formatItemValue(
   return valueText
 }
 
-async function save(e: FormSubmitEvent) {
+/**
+ * Handles the save operation for the form submission event. Validates the form data, processes the required
+ * feature, interacts with project data for adding or updating information, and emits the save event
+ * with the saved feature and associated tags.
+ */
+async function save(e: FormSubmitEvent): Promise<void> {
   if (!e.valid) {
     toast.add({
       severity: "error",
@@ -216,43 +230,12 @@ async function save(e: FormSubmitEvent) {
     return
   }
 
-  const feature: ProjectDataFeature = {
-    geom: {
-      type: "Point",
-      coordinates: [props.coordinate.lng, props.coordinate.lat],
-    },
-    data: {},
-  }
-
   try {
-    const projectDataId = props.projectDataId ?? generateId()
-    for (const row of props.fields) {
-      const rowValue = e.values[row.key] as undefined | string | number | boolean | Date | string[]
-
-      if (row.type === FieldType.NESTED) {
-        const minimalItem = row.fieldConfig?.minItem
-
-        for (const [key, value] of Object.entries(nestedFieldsData.value)) {
-          if (minimalItem && value.length < minimalItem) {
-            e.valid = false
-            toast.add({
-              severity: "error",
-              summary: `Minimal Item for ${row.name} is ${minimalItem}`,
-            })
-            return
-          }
-          feature.data[key] = value
-        }
-        continue
-      }
-
-      if (row.type === FieldType.IMAGE && rowValue != null) {
-        feature.data[row.key] = await projectData.upsertImage(e.values[row.key]!, projectDataId, get(imageOriginalKey, row.key))
-        continue
-      }
-
-      feature.data[row.key] = rowValue
+    const featureRes = await buildFeature(e)
+    if (featureRes == null) {
+      return
     }
+    const [feature, projectDataId] = featureRes
 
     if (props.projectDataId == null) {
       await projectData.add(feature, props.participantLocation, projectDataId)
@@ -275,6 +258,48 @@ async function save(e: FormSubmitEvent) {
     }
     console.error(e)
   }
+}
+
+async function buildFeature(e: FormSubmitEvent): Promise<[ProjectDataFeature, string] | undefined> {
+  const feature: ProjectDataFeature = {
+    geom: {
+      type: "Point",
+      coordinates: [props.coordinate.lng, props.coordinate.lat],
+    },
+    data: {},
+    tags: toRaw(projectDataTags.value),
+  }
+
+  const projectDataId = props.projectDataId ?? generateId()
+  for (const row of props.fields) {
+    const rowValue = e.values[row.key] as undefined | string | number | boolean | Date | string[]
+
+    if (row.type === FieldType.NESTED) {
+      const minimalItem = row.fieldConfig?.minItem
+
+      for (const [key, value] of Object.entries(nestedFieldsData.value)) {
+        if (minimalItem && value.length < minimalItem) {
+          e.valid = false
+          toast.add({
+            severity: "error",
+            summary: `Minimal Item for ${row.name} is ${minimalItem}`,
+          })
+          return
+        }
+        feature.data[key] = value
+      }
+      continue
+    }
+
+    if (row.type === FieldType.IMAGE && rowValue != null) {
+      feature.data[row.key] = await projectData.upsertImage(e.values[row.key]!, projectDataId, get(imageOriginalKey, row.key))
+      continue
+    }
+
+    feature.data[row.key] = rowValue
+  }
+
+  return [feature, projectDataId]
 }
 
 function convertDDToDMS(decimalDegrees: number): string {
@@ -362,7 +387,7 @@ onDeactivated(() => {
             </div>
           </li>
 
-          <li v-if="props.tags != null && props.tags.length > 0">
+          <li v-if="projectDataTags.length > 0">
             <div class="mb-1 text-sm text-surface-400">
               Tags
             </div>

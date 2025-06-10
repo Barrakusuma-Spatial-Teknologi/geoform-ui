@@ -175,13 +175,6 @@ function showForm(coord?: {
     }
   }
 
-  if (isEditCoordinateMode.value) {
-    isEditCoordinateMode.value = false
-    document.querySelector(".p-drawer")?.classList.remove("!hidden")
-    document.querySelector(".p-drawer-mask")?.classList.remove("!hidden")
-    return
-  }
-
   if (layerAsInput.length === 0) {
     inputTags.value = undefined
   }
@@ -197,6 +190,13 @@ function showForm(coord?: {
         })
         .filter((tag) => tag != null)
     }
+  }
+
+  if (isEditCoordinateMode.value) {
+    isEditCoordinateMode.value = false
+    document.querySelector(".p-drawer")?.classList.remove("!hidden")
+    document.querySelector(".p-drawer-mask")?.classList.remove("!hidden")
+    return
   }
 
   formVisible.value = true
@@ -292,6 +292,7 @@ const uiBlocker = useUiBlocker()
 const appConfig = useAppConfig()
 const timeMachine = await useDbTimeMachine()
 
+// eslint-disable-next-line unused-imports/no-unused-vars
 async function triggerBackup() {
   if (appConfig.config?.timeMachine?.isContinuous !== true) {
     return
@@ -655,6 +656,14 @@ onMounted(async () => {
     <Drawer
       v-model:visible="formVisible" pt:root:class="!border-0 !bg-transparent" class="!h-[90vh]"
       pt:mask:class="backdrop-blur-sm" position="bottom"
+      @hide="() => {
+        projectDataIdSelected = undefined
+        selectedCoordinate = {
+          lng: 0,
+          lat: 0,
+        }
+        inputTags = undefined
+      }"
     >
       <template #container="{ closeCallback }">
         <div v-if="selectedProject != null" class="size-full">
@@ -666,20 +675,9 @@ onMounted(async () => {
             :participant-location="participantLocation"
             :tags="inputTags"
             @close="() => {
-              projectDataIdSelected = undefined
-              selectedCoordinate = {
-                lng: 0,
-                lat: 0,
-              }
               closeCallback()
             }"
             @save="() => {
-              projectDataIdSelected = undefined
-              selectedCoordinate = {
-                lng: 0,
-                lat: 0,
-              }
-              triggerBackup()
               closeCallback()
             }"
 

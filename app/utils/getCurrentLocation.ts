@@ -1,8 +1,17 @@
-export async function getCurrentLocation() {
+export async function getCurrentLocation(timeout: number = 5000) {
   try {
-    const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true })
+    const position = await new Promise<GeolocationPosition | undefined>((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, (e) => {
+        if (e.code === e.TIMEOUT) {
+          resolve(undefined)
+        }
+        reject(new Error(e.message, { cause: e }))
+      }, { enableHighAccuracy: true, timeout })
     })
+
+    if (position == null) {
+      return
+    }
 
     return [position.coords.longitude, position.coords.latitude]
   }
