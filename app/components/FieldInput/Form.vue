@@ -8,6 +8,7 @@ import { createZodSchema } from "~/components/FieldInput/form-validation"
 import { type FieldConfig, type FieldConfigNested, FieldType } from "~/composables/project/model/project"
 import { useProjectData } from "~/composables/project/project-data"
 import { useProjectTags } from "~/composables/project/project-tags"
+import { useUiBlocker } from "~/composables/ui/blocker"
 import FormInputNested from "./FormInputNested.vue"
 import FormInputSingular from "./FormInputSingular.vue"
 
@@ -37,6 +38,8 @@ const fieldValues = ref<(FieldConfig & {
   }
   valid?: boolean
 })[]>([])
+
+const blocker = useUiBlocker()
 
 const validationSchema = ref(zodResolver(createZodSchema(props.fields)))
 const initialValues = ref<Record<string, any>>()
@@ -231,6 +234,7 @@ async function save(e: FormSubmitEvent): Promise<void> {
   }
 
   try {
+    blocker.show("Saving survey data...")
     const featureRes = await buildFeature(e)
     if (featureRes == null) {
       return
@@ -257,6 +261,9 @@ async function save(e: FormSubmitEvent): Promise<void> {
       return
     }
     console.error(e)
+  }
+  finally {
+    blocker.hide()
   }
 }
 
