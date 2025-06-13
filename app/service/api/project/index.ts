@@ -343,6 +343,7 @@ async function sendSyncRequest(projectId: string, payload: SyncProjectDataPayloa
         modified: payload.modified.map((row) => ({
           ...row,
           id: UUID.parse(row.id).bytes,
+          tags: UUID.parse(row.data.tags).bytes,
         })),
         deletedKeys: payload.deletedKeys.map((row) => ({
           id: UUID.parse(row.id).bytes,
@@ -458,19 +459,18 @@ async function syncProjectDataUpdate(projectId: string, chunkedCount?: number, p
   for (const changes of chunk(modified, chunkedCount ?? 3)) {
     const rows = await projectDataStore.getByIds(changes.map((row) => row.dataId))
     const currentLocation = await getCurrentLocation()
-
     const payload = {
       modified: rows.map((row) => (
         {
           id: row.id,
           geom: row.data.geom,
           data: row.data.data,
+          tags: row.tags,
           participantLocation: row.participantLocation ?? currentLocation,
         })),
       deletedKeys: [],
       projectVersionId: project.versionId,
     } satisfies SyncProjectDataPayload
-
     const result = await sendSyncRequest(projectId, payload, true) as [string, number][]
 
     currentChunk += 1
