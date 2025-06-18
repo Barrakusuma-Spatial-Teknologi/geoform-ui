@@ -80,6 +80,7 @@ export default defineNuxtConfig({
     public: {
       apiUrl: "",
       includeVconsole: "0",
+      maxDistance: "50",
     },
   },
 

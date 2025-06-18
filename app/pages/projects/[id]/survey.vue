@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import type { ExportProgress } from "dexie-export-import"
-import type { Point } from "geojson"
+import type { Feature, GeoJsonProperties, MultiPolygon, Point, Polygon } from "geojson"
 import type { GeoJSONSource, LayerSpecification, StyleSpecification } from "maplibre-gl"
 import type { FieldConfig } from "~/composables/project/model/project"
 import type { ProjectDataFeature } from "~/composables/project/model/project-data"
 import bbox from "@turf/bbox"
+import { booleanIntersects } from "@turf/boolean-intersects"
+import { buffer } from "@turf/buffer"
+import { point } from "@turf/helpers"
 import { UseTimeAgo } from "@vueuse/components"
 import { orderBy } from "es-toolkit"
 import { get } from "es-toolkit/compat"
@@ -131,6 +134,40 @@ const selectedCoordinate = ref({
 const inputTags = ref<string[]>()
 const isEditCoordinateMode = ref<boolean>(false)
 
+function createBuffer(participantCoordinate: [longitude: number, latitude: number]):
+Feature<Polygon | MultiPolygon, GeoJsonProperties> | undefined {
+  const geojsonPoint = point(participantCoordinate)
+  const radius = Number(useRuntimeConfig().public.maxDistance)
+  const bufferFromPoint = buffer(geojsonPoint, radius, { units: "meters" })
+
+  return bufferFromPoint
+}
+
+function isInsideRadius(
+  participantCoordinate?: [longitude: number, latitude: number],
+  layerId?: string,
+): boolean {
+  if (participantCoordinate == null || layerId == null) {
+    return false
+  }
+
+  const buffered = createBuffer(participantCoordinate)
+
+  if (buffered == null) {
+    return false
+  }
+
+  const features = map.querySourceFeatures(layerId)
+
+  for (const feature of features) {
+    if (booleanIntersects(buffered, feature)) {
+      return true
+    }
+  }
+
+  return false
+}
+
 function showForm(coord?: {
   lng: number
   lat: number
@@ -168,6 +205,20 @@ function showForm(coord?: {
         severity: "error",
         summary: "Invalid position",
         detail: `Position must be inside '${layer.name}'`,
+        life: 3000,
+        group: "bc",
+      })
+      return
+    }
+
+    const layerId = map.getStyle().layers?.filter((layer) => layer.type === "fill")
+    const isIntersected = isInsideRadius(participantLocation.value, layerId?.[0]?.source)
+
+    if (isIntersected === false && layer.mode === "inside") {
+      toast.add({
+        severity: "error",
+        summary: "Invalid position",
+        detail: `Surveyor's position must be inside '${layer.name}'`,
         life: 3000,
         group: "bc",
       })
