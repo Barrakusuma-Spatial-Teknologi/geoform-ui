@@ -584,6 +584,30 @@ onMounted(async () => {
         },
       },
       {
+        id: "userPositionRadius",
+        type: "circle",
+        source: "userPosition",
+        paint: {
+          "circle-color": usePrimaryColor().value,
+          "circle-radius": [
+            "interpolate",
+            ["exponential", 2],
+            ["zoom"],
+            0,
+            0,
+            20,
+            [
+              "/",
+              ["/", Number(useRuntimeConfig().public.maxDistance), 0.075],
+              ["cos", ["*", ["get", "lat"], ["/", Math.PI, 180]]],
+            ],
+          ],
+          "circle-opacity": 0.1,
+          "circle-stroke-color": "#FFE500",
+          "circle-stroke-width": 2,
+        },
+      },
+      {
         id: "surveyData",
         type: "circle",
         source: "surveyData",
