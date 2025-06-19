@@ -28,6 +28,7 @@ const {
 const config = reactive({
   title: "",
   key: "",
+  maxDistance: undefined as number | undefined,
 })
 const formDirty = ref(false)
 watch(config, () => {
@@ -84,6 +85,7 @@ async function saveProject() {
       fields: toRaw(parsedFields),
       createdAt: Date.now(),
       createdBy: auth.state.username,
+      maxDistance: config.maxDistance,
     })
 
     const layerOrder = 0
@@ -122,6 +124,7 @@ async function saveProject() {
       id: projectId.value!,
       updatedAt: Date.now(),
       createdAt: selected!.createdAt,
+      maxDistance: config.maxDistance,
     })
 
     let layerOrder = 0
@@ -178,6 +181,7 @@ onMounted(async () => {
 
   config.title = selected.name
   config.key = selected.id
+  config.maxDistance = selected.maxDistance
 
   fields.value = selected.fields.map((field) => ({ ...field, fieldConfig: field?.fieldConfig ?? {}, dirty: false, strictChange: selected.syncAt != null } as FieldConfigWrapper))
 

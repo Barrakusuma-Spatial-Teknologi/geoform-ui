@@ -7,6 +7,7 @@ const config = defineModel<FormConfig>("config", {
   default: {
     key: "",
     title: "",
+    maxDistance: undefined,
   },
 })
 const fields = defineModel<FieldConfigWrapper[]>("fields", {
@@ -37,6 +38,11 @@ function addNewField(): void {
       <IftaLabel fluid class="mb-6 ">
         <InputText id="title" v-model="config.title" fluid />
         <label for="title">Title</label>
+      </IftaLabel>
+
+      <IftaLabel fluid class="mb-6 ">
+        <InputNumber id="maxDistance" v-model="config.maxDistance" fluid />
+        <label for="maxDistance">Max Distance</label>
       </IftaLabel>
 
       <div class="mb-2">
