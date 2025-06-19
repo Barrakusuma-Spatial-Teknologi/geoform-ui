@@ -191,7 +191,7 @@ function showForm(coord?: {
       toast.add({
         severity: "error",
         summary: "Invalid position",
-        detail: `Surveyor's position must be around of '${projectLayer?.[0]?.id}'`,
+        detail: `Surveyor's position must be at least around ${projectMaxDistance} m from the'${projectLayer?.[0]?.id}'`,
         life: 3000,
         group: "bc",
       })
