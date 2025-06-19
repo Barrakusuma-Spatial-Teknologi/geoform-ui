@@ -23,6 +23,7 @@ export interface ProjectNewPayload {
   fields: FieldConfig[]
   layers?: ProjectLayerNewPayload[]
   participantQuota?: number
+  maxDistance?: number
 }
 
 export interface ProjectUpdatePayload {
@@ -32,6 +33,7 @@ export interface ProjectUpdatePayload {
   layers?: ProjectLayerNewPayload[]
   participantQuota?: number
   currentVersionId: string
+  maxDistance?: number
 }
 
 export interface ProjectResponse {
@@ -46,6 +48,7 @@ export interface ProjectResponse {
   updatedAt?: string
   versionId?: string
   isCollaboration: boolean
+  maxDistance?: number
 }
 
 export interface ProjectResponseWithTag extends ProjectResponse {
@@ -89,6 +92,7 @@ async function saveToCloud(projectId: string, quota?: number) {
     title: project.name,
     fields: project.fields,
     layers,
+    maxDistance: project.maxDistance,
   }
 
   const created = await useMainServiceFetch<ProjectUpdatedResponse>("/projects", {
@@ -104,6 +108,7 @@ async function saveToCloud(projectId: string, quota?: number) {
     versionId: created.data.versionId,
     participantQuota: quota,
     participantNum: 0,
+    maxDistance: project.maxDistance,
   })
 }
 
@@ -130,6 +135,7 @@ async function update(projectId: string) {
     layers,
     // currentVersionId: UUID.parse(project.versionId!),
     currentVersionId: project.versionId!,
+    maxDistance: project.maxDistance,
   }
 
   const created = await useMainServiceFetch<ProjectUpdatedResponse>(`/projects/${projectId}`, {

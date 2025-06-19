@@ -94,6 +94,10 @@ export function migrateDatabase() {
     projectData: "id, projectId, data, createdBy, updatedAt, syncAt, participantLocation, tags, version",
     changesHistory: "id, table, projectId, dataId, changeType, updatedAt, version",
   })
+
+  db.version(7).stores({
+    project: "id, title, fields, updatedAt, createdAt, createdBy, syncAt, isCollaboration, participantQuota, participantNum, versionId, maxDistance",
+  })
 }
 
 const broker = new MessageBroker<{

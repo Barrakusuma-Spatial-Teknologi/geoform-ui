@@ -44,6 +44,7 @@ export function useProjectStore() {
       createdBy: project.createdBy,
       participantNum: project.participantNum,
       versionId: project.versionId,
+      maxDistance: project.maxDistance,
     }, project.id)
   }
 
