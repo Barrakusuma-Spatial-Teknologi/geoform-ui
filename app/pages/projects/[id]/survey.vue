@@ -134,30 +134,31 @@ const selectedCoordinate = ref({
 const inputTags = ref<string[]>()
 const isEditCoordinateMode = ref<boolean>(false)
 
-function createBuffer(participantCoordinate: [longitude: number, latitude: number]):
+const projectMaxDistance = selected?.maxDistance
+function createBuffer(participantCoordinate: [longitude: number, latitude: number], maxDistance: number):
 Feature<Polygon | MultiPolygon, GeoJsonProperties> | undefined {
   const geojsonPoint = point(participantCoordinate)
-  const radius = Number(useRuntimeConfig().public.maxDistance)
-  const bufferFromPoint = buffer(geojsonPoint, radius, { units: "meters" })
+  const bufferFromPoint = buffer(geojsonPoint, maxDistance, { units: "meters" })
 
   return bufferFromPoint
 }
 
 function isInsideRadius(
+  maxDistance: number,
   participantCoordinate?: [longitude: number, latitude: number],
-  layerId?: string,
+  sourceId?: string,
 ): boolean {
-  if (participantCoordinate == null || layerId == null) {
+  if (participantCoordinate == null || sourceId == null) {
     return false
   }
 
-  const buffered = createBuffer(participantCoordinate)
+  const buffered = createBuffer(participantCoordinate, maxDistance)
 
   if (buffered == null) {
     return false
   }
 
-  const features = map.querySourceFeatures(layerId)
+  const features = map.querySourceFeatures(sourceId)
 
   for (const feature of features) {
     if (booleanIntersects(buffered, feature)) {
@@ -179,6 +180,22 @@ function showForm(coord?: {
     selectedCoordinate.value = {
       lng: coords.value.longitude,
       lat: coords.value.latitude,
+    }
+  }
+
+  if (projectMaxDistance != null) {
+    const projectLayer = map.getStyle().layers?.filter((layer) => layer.type === "fill")
+    const isIntersected = isInsideRadius(projectMaxDistance, participantLocation.value, projectLayer?.[0]?.source)
+
+    if (!isIntersected) {
+      toast.add({
+        severity: "error",
+        summary: "Invalid position",
+        detail: `Surveyor's position must be around of '${projectLayer?.[0]?.id}'`,
+        life: 3000,
+        group: "bc",
+      })
+      return
     }
   }
 
@@ -205,20 +222,6 @@ function showForm(coord?: {
         severity: "error",
         summary: "Invalid position",
         detail: `Position must be inside '${layer.name}'`,
-        life: 3000,
-        group: "bc",
-      })
-      return
-    }
-
-    const layerId = map.getStyle().layers?.filter((layer) => layer.type === "fill")
-    const isIntersected = isInsideRadius(participantLocation.value, layerId?.[0]?.source)
-
-    if (isIntersected === false && layer.mode === "inside") {
-      toast.add({
-        severity: "error",
-        summary: "Invalid position",
-        detail: `Surveyor's position must be inside '${layer.name}'`,
         life: 3000,
         group: "bc",
       })
@@ -584,30 +587,6 @@ onMounted(async () => {
         },
       },
       {
-        id: "userPositionRadius",
-        type: "circle",
-        source: "userPosition",
-        paint: {
-          "circle-color": usePrimaryColor().value,
-          "circle-radius": [
-            "interpolate",
-            ["exponential", 2],
-            ["zoom"],
-            0,
-            0,
-            20,
-            [
-              "/",
-              ["/", Number(useRuntimeConfig().public.maxDistance), 0.075],
-              ["cos", ["*", ["get", "lat"], ["/", Math.PI, 180]]],
-            ],
-          ],
-          "circle-opacity": 0.1,
-          "circle-stroke-color": "#FFE500",
-          "circle-stroke-width": 2,
-        },
-      },
-      {
         id: "surveyData",
         type: "circle",
         source: "surveyData",
@@ -630,6 +609,39 @@ onMounted(async () => {
       },
     ] as LayerSpecification[],
   )
+
+  if (projectMaxDistance != null) {
+    style.layers.push(
+      ...[{
+        id: "userPositionRadius",
+        type: "circle",
+        source: "userPosition",
+        paint: {
+          "circle-color": usePrimaryColor().value,
+          "circle-radius": [
+            "interpolate",
+            ["exponential", 2],
+            ["zoom"],
+            0,
+            0,
+            20,
+            [
+              "/",
+              [
+                "/",
+                projectMaxDistance,
+                0.075,
+              ],
+              ["cos", ["*", ["get", "lat"], ["/", Math.PI, 180]]],
+            ],
+          ],
+          "circle-opacity": 0.1,
+          "circle-stroke-color": "#FFE500",
+          "circle-stroke-width": 2,
+        },
+      }] as LayerSpecification[],
+    )
+  }
 
   map = new MglMap({
     container: "map",

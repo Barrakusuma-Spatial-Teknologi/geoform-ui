@@ -40,7 +40,7 @@ function addNewField(): void {
         <label for="title">Title</label>
       </IftaLabel>
 
-      <IftaLabel fluid class="mb-6 ">
+      <IftaLabel fluid class="mb-6">
         <InputNumber id="maxDistance" v-model="config.maxDistance" fluid />
         <label for="maxDistance">Max Distance</label>
       </IftaLabel>
