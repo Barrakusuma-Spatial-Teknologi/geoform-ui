@@ -47,7 +47,7 @@ function addNewField(): void {
           :max-fraction-digits="2"
           :min="0.01"
         />
-        <label for="maxDistanceInMeter">Max Distance In Meter</label>
+        <label for="maxDistanceInMeter">Max Distance (meter)</label>
       </IftaLabel>
 
       <div class="mb-2">
