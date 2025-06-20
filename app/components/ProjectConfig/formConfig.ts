@@ -3,6 +3,7 @@ import type { FieldConfig, FieldConfigSingular } from "~/composables/project/mod
 export interface FormConfig {
   title: string
   key: string
+  maxDistanceInMeter?: number
 }
 
 export type FieldConfigWrapper = FieldConfig & { dirty: boolean, strictChange: boolean }

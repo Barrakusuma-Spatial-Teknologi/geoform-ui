@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import type { ExportProgress } from "dexie-export-import"
-import type { Point } from "geojson"
+import type { Feature, GeoJsonProperties, MultiPolygon, Point, Polygon } from "geojson"
 import type { GeoJSONSource, LayerSpecification, StyleSpecification } from "maplibre-gl"
 import type { FieldConfig } from "~/composables/project/model/project"
 import type { ProjectDataFeature } from "~/composables/project/model/project-data"
 import bbox from "@turf/bbox"
+import { booleanIntersects } from "@turf/boolean-intersects"
+import { buffer } from "@turf/buffer"
+import { point } from "@turf/helpers"
 import { UseTimeAgo } from "@vueuse/components"
 import { orderBy } from "es-toolkit"
 import { get } from "es-toolkit/compat"
@@ -130,6 +133,35 @@ const selectedCoordinate = ref({
 })
 const inputTags = ref<string[]>()
 const isEditCoordinateMode = ref<boolean>(false)
+
+const projectMaxDistanceInMeter = selected?.maxDistanceInMeter
+function createBuffer(participantCoordinate: [longitude: number, latitude: number]):
+Feature<Polygon | MultiPolygon, GeoJsonProperties> | undefined {
+  const geojsonPoint = point(participantCoordinate)
+  const bufferFromPoint = buffer(geojsonPoint, projectMaxDistanceInMeter, { units: "meters" })
+
+  return bufferFromPoint
+}
+
+const isWithinRadius = ref(true)
+function isInsideRadius(
+  selectedCoordinate: { lng: number, lat: number },
+  participantCoordinate?: [longitude: number, latitude: number],
+): boolean {
+  if (participantCoordinate == null) {
+    return false
+  }
+
+  const buffered = createBuffer(participantCoordinate)
+
+  if (buffered == null) {
+    return false
+  }
+
+  const pointGeojsonFromSelectedCoordinate = point([selectedCoordinate.lng, selectedCoordinate.lat])
+
+  return booleanIntersects(buffered, pointGeojsonFromSelectedCoordinate)
+}
 
 function showForm(coord?: {
   lng: number
@@ -556,6 +588,39 @@ onMounted(async () => {
     ] as LayerSpecification[],
   )
 
+  if (projectMaxDistanceInMeter != null) {
+    style.layers.push(
+      ...[{
+        id: "userPositionRadius",
+        type: "circle",
+        source: "userPosition",
+        paint: {
+          "circle-color": usePrimaryColor().value,
+          "circle-radius": [
+            "interpolate",
+            ["exponential", 2],
+            ["zoom"],
+            0,
+            0,
+            20,
+            [
+              "/",
+              [
+                "/",
+                projectMaxDistanceInMeter,
+                0.075,
+              ],
+              ["cos", ["*", ["get", "lat"], ["/", Math.PI, 180]]],
+            ],
+          ],
+          "circle-opacity": 0.1,
+          "circle-stroke-color": "#FFE500",
+          "circle-stroke-width": 2,
+        },
+      }] as LayerSpecification[],
+    )
+  }
+
   map = new MglMap({
     container: "map",
     refreshExpiredTiles: false,
@@ -600,6 +665,10 @@ onMounted(async () => {
   zoomToPosition()
 
   map.on("click", (e) => {
+    if (projectMaxDistanceInMeter != null) {
+      isWithinRadius.value = isInsideRadius({ lng: e.lngLat.lng, lat: e.lngLat.lat }, participantLocation.value)
+    }
+
     clickedPosition.value = {
       visible: true,
       coordinate: {
@@ -747,26 +816,33 @@ onMounted(async () => {
                   }}
                 </div>
 
-                <div class="flex w-full">
-                  <Button
-                    severity="secondary"
-                    size="small"
-                    fluid
-                    @click="() => {
-                      showForm(clickedPosition.coordinate)
-                      clickedPosition.visible = false
-                    }"
-                  >
-                    {{ isEditCoordinateMode ? 'Use this location' : 'Add data here' }}
-                  </Button>
-                  <Button
-                    text size="small" style="transform: translateX(8px)" @click="() => {
-                      clickedPosition.visible = false
-                    }"
-                  >
-                    <i class="i-[solar--close-circle-linear] text-2xl" />
-                  </Button>
-                </div>
+                <template v-if="!isWithinRadius">
+                  <div class="w-full pb-2 pt-1 text-center text-sm">
+                    Outside allowed radius: {{ projectMaxDistanceInMeter }} m
+                  </div>
+                </template>
+                <template v-else>
+                  <div class="flex w-full">
+                    <Button
+                      severity="secondary"
+                      size="small"
+                      fluid
+                      @click="() => {
+                        showForm(clickedPosition.coordinate)
+                        clickedPosition.visible = false
+                      }"
+                    >
+                      {{ isEditCoordinateMode ? 'Use this location' : 'Add data here' }}
+                    </Button>
+                    <Button
+                      text size="small" style="transform: translateX(8px)" @click="() => {
+                        clickedPosition.visible = false
+                      }"
+                    >
+                      <i class="i-[solar--close-circle-linear] text-2xl" />
+                    </Button>
+                  </div>
+                </template>
               </div>
 
               <!-- Arrow Section -->

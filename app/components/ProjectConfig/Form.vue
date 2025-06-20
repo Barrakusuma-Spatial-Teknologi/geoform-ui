@@ -7,6 +7,7 @@ const config = defineModel<FormConfig>("config", {
   default: {
     key: "",
     title: "",
+    maxDistanceInMeter: undefined,
   },
 })
 const fields = defineModel<FieldConfigWrapper[]>("fields", {
@@ -37,6 +38,16 @@ function addNewField(): void {
       <IftaLabel fluid class="mb-6 ">
         <InputText id="title" v-model="config.title" fluid />
         <label for="title">Title</label>
+      </IftaLabel>
+
+      <IftaLabel fluid class="mb-6">
+        <InputNumber
+          id="maxDistanceInMeter" v-model="config.maxDistanceInMeter" fluid
+          :invalid="config.maxDistanceInMeter != null && config.maxDistanceInMeter < 0.01"
+          :max-fraction-digits="2"
+          :min="0.01"
+        />
+        <label for="maxDistanceInMeter">Max Distance (meter)</label>
       </IftaLabel>
 
       <div class="mb-2">
