@@ -138,12 +138,12 @@ const projectMaxDistanceInMeter = selected?.maxDistanceInMeter
 function createBuffer(participantCoordinate: [longitude: number, latitude: number]):
 Feature<Polygon | MultiPolygon, GeoJsonProperties> | undefined {
   const geojsonPoint = point(participantCoordinate)
-  const radius = projectMaxDistanceInMeter
-  const bufferFromPoint = buffer(geojsonPoint, radius, { units: "meters" })
+  const bufferFromPoint = buffer(geojsonPoint, projectMaxDistanceInMeter, { units: "meters" })
 
   return bufferFromPoint
 }
 
+const isWithinRadius = ref(true)
 function isInsideRadius(
   selectedCoordinate: { lng: number, lat: number },
   participantCoordinate?: [longitude: number, latitude: number],
@@ -160,11 +160,7 @@ function isInsideRadius(
 
   const pointGeojsonFromSelectedCoordinate = point([selectedCoordinate.lng, selectedCoordinate.lat])
 
-  if (booleanIntersects(buffered, pointGeojsonFromSelectedCoordinate)) {
-    return true
-  }
-
-  return false
+  return booleanIntersects(buffered, pointGeojsonFromSelectedCoordinate)
 }
 
 function showForm(coord?: {
@@ -178,21 +174,6 @@ function showForm(coord?: {
     selectedCoordinate.value = {
       lng: coords.value.longitude,
       lat: coords.value.latitude,
-    }
-  }
-
-  if (projectMaxDistanceInMeter != null) {
-    const isIntersected = isInsideRadius(selectedCoordinate.value, participantLocation.value)
-
-    if (!isIntersected) {
-      toast.add({
-        severity: "error",
-        summary: "Invalid position",
-        detail: `Surveyor's position must be at least around ${projectMaxDistanceInMeter} m radius from the picked coordinate'`,
-        life: 3000,
-        group: "bc",
-      })
-      return
     }
   }
 
@@ -684,6 +665,10 @@ onMounted(async () => {
   zoomToPosition()
 
   map.on("click", (e) => {
+    if (projectMaxDistanceInMeter != null) {
+      isWithinRadius.value = isInsideRadius({ lng: e.lngLat.lng, lat: e.lngLat.lat }, participantLocation.value)
+    }
+
     clickedPosition.value = {
       visible: true,
       coordinate: {
@@ -831,26 +816,33 @@ onMounted(async () => {
                   }}
                 </div>
 
-                <div class="flex w-full">
-                  <Button
-                    severity="secondary"
-                    size="small"
-                    fluid
-                    @click="() => {
-                      showForm(clickedPosition.coordinate)
-                      clickedPosition.visible = false
-                    }"
-                  >
-                    {{ isEditCoordinateMode ? 'Use this location' : 'Add data here' }}
-                  </Button>
-                  <Button
-                    text size="small" style="transform: translateX(8px)" @click="() => {
-                      clickedPosition.visible = false
-                    }"
-                  >
-                    <i class="i-[solar--close-circle-linear] text-2xl" />
-                  </Button>
-                </div>
+                <template v-if="!isWithinRadius">
+                  <div class="w-full pb-2 pt-1 text-center text-sm">
+                    Outside allowed radius: {{ projectMaxDistanceInMeter }} m
+                  </div>
+                </template>
+                <template v-else>
+                  <div class="flex w-full">
+                    <Button
+                      severity="secondary"
+                      size="small"
+                      fluid
+                      @click="() => {
+                        showForm(clickedPosition.coordinate)
+                        clickedPosition.visible = false
+                      }"
+                    >
+                      {{ isEditCoordinateMode ? 'Use this location' : 'Add data here' }}
+                    </Button>
+                    <Button
+                      text size="small" style="transform: translateX(8px)" @click="() => {
+                        clickedPosition.visible = false
+                      }"
+                    >
+                      <i class="i-[solar--close-circle-linear] text-2xl" />
+                    </Button>
+                  </div>
+                </template>
               </div>
 
               <!-- Arrow Section -->
