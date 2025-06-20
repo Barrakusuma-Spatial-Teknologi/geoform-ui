@@ -134,36 +134,34 @@ const selectedCoordinate = ref({
 const inputTags = ref<string[]>()
 const isEditCoordinateMode = ref<boolean>(false)
 
-const projectMaxDistance = selected?.maxDistanceInMeter
-function createBuffer(participantCoordinate: [longitude: number, latitude: number], maxDistanceInMeter: number):
+const projectMaxDistanceInMeter = selected?.maxDistanceInMeter
+function createBuffer(participantCoordinate: [longitude: number, latitude: number]):
 Feature<Polygon | MultiPolygon, GeoJsonProperties> | undefined {
   const geojsonPoint = point(participantCoordinate)
-  const bufferFromPoint = buffer(geojsonPoint, maxDistanceInMeter, { units: "meters" })
+  const radius = projectMaxDistanceInMeter
+  const bufferFromPoint = buffer(geojsonPoint, radius, { units: "meters" })
 
   return bufferFromPoint
 }
 
 function isInsideRadius(
-  maxDistanceInMeter: number,
+  selectedCoordinate: { lng: number, lat: number },
   participantCoordinate?: [longitude: number, latitude: number],
-  sourceId?: string,
 ): boolean {
-  if (participantCoordinate == null || sourceId == null) {
+  if (participantCoordinate == null) {
     return false
   }
 
-  const buffered = createBuffer(participantCoordinate, maxDistanceInMeter)
+  const buffered = createBuffer(participantCoordinate)
 
   if (buffered == null) {
     return false
   }
 
-  const features = map.querySourceFeatures(sourceId)
+  const pointGeojsonFromSelectedCoordinate = point([selectedCoordinate.lng, selectedCoordinate.lat])
 
-  for (const feature of features) {
-    if (booleanIntersects(buffered, feature)) {
-      return true
-    }
+  if (booleanIntersects(buffered, pointGeojsonFromSelectedCoordinate)) {
+    return true
   }
 
   return false
@@ -183,15 +181,14 @@ function showForm(coord?: {
     }
   }
 
-  if (projectMaxDistance != null) {
-    const projectLayer = map.getStyle().layers?.filter((layer) => layer.type === "fill")
-    const isIntersected = isInsideRadius(projectMaxDistance, participantLocation.value, projectLayer?.[0]?.source)
+  if (projectMaxDistanceInMeter != null) {
+    const isIntersected = isInsideRadius(selectedCoordinate.value, participantLocation.value)
 
     if (!isIntersected) {
       toast.add({
         severity: "error",
         summary: "Invalid position",
-        detail: `Surveyor's position must be at least around ${projectMaxDistance} m from the'${projectLayer?.[0]?.id}'`,
+        detail: `Surveyor's position must be at least around ${projectMaxDistanceInMeter} m radius from the picked coordinate'`,
         life: 3000,
         group: "bc",
       })
@@ -610,7 +607,7 @@ onMounted(async () => {
     ] as LayerSpecification[],
   )
 
-  if (projectMaxDistance != null) {
+  if (projectMaxDistanceInMeter != null) {
     style.layers.push(
       ...[{
         id: "userPositionRadius",
@@ -629,7 +626,7 @@ onMounted(async () => {
               "/",
               [
                 "/",
-                projectMaxDistance,
+                projectMaxDistanceInMeter,
                 0.075,
               ],
               ["cos", ["*", ["get", "lat"], ["/", Math.PI, 180]]],
