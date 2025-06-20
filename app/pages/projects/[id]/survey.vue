@@ -134,17 +134,17 @@ const selectedCoordinate = ref({
 const inputTags = ref<string[]>()
 const isEditCoordinateMode = ref<boolean>(false)
 
-const projectMaxDistance = selected?.maxDistance
-function createBuffer(participantCoordinate: [longitude: number, latitude: number], maxDistance: number):
+const projectMaxDistance = selected?.maxDistanceInMeter
+function createBuffer(participantCoordinate: [longitude: number, latitude: number], maxDistanceInMeter: number):
 Feature<Polygon | MultiPolygon, GeoJsonProperties> | undefined {
   const geojsonPoint = point(participantCoordinate)
-  const bufferFromPoint = buffer(geojsonPoint, maxDistance, { units: "meters" })
+  const bufferFromPoint = buffer(geojsonPoint, maxDistanceInMeter, { units: "meters" })
 
   return bufferFromPoint
 }
 
 function isInsideRadius(
-  maxDistance: number,
+  maxDistanceInMeter: number,
   participantCoordinate?: [longitude: number, latitude: number],
   sourceId?: string,
 ): boolean {
@@ -152,7 +152,7 @@ function isInsideRadius(
     return false
   }
 
-  const buffered = createBuffer(participantCoordinate, maxDistance)
+  const buffered = createBuffer(participantCoordinate, maxDistanceInMeter)
 
   if (buffered == null) {
     return false

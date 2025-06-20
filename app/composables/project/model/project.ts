@@ -10,7 +10,7 @@ export interface Project {
   isCollaboration?: boolean
   participantQuota?: number
   participantNum?: number
-  maxDistance?: number
+  maxDistanceInMeter?: number
 }
 
 export enum FieldType {

@@ -96,7 +96,7 @@ export function migrateDatabase() {
   })
 
   db.version(7).stores({
-    project: "id, title, fields, updatedAt, createdAt, createdBy, syncAt, isCollaboration, participantQuota, participantNum, versionId, maxDistance",
+    project: "id, title, fields, updatedAt, createdAt, createdBy, syncAt, isCollaboration, participantQuota, participantNum, versionId, maxDistanceInMeter",
   })
 }
 
