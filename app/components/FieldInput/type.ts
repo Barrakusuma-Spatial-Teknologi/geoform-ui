@@ -9,4 +9,5 @@ export interface NestedEditValue {
   config: FieldConfigNested
   visible: boolean
   index?: number
+  isMultiNested: boolean
 }

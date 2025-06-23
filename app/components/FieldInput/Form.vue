@@ -11,6 +11,7 @@ import { useProjectTags } from "~/composables/project/project-tags"
 import { useUiBlocker } from "~/composables/ui/blocker"
 import FormInputNested from "./FormInputNested.vue"
 import FormInputSingular from "./FormInputSingular.vue"
+import FormInputTwoLevelNested from "./FormInputTwoLevelNested.vue"
 
 const props = defineProps<{
   projectId: string
@@ -142,11 +143,13 @@ const nestedEditValue = reactive<NestedEditValue>({
   config: {} as FieldConfigNested,
   visible: false,
   index: undefined,
+  isMultiNested: false,
 })
 
-function addNewItem(field: FieldConfigNested) {
+function addNewItem(field: FieldConfigNested, isMultiNested: boolean) {
   nestedEditValue.config = field
   nestedEditValue.visible = true
+  nestedEditValue.isMultiNested = isMultiNested
 }
 
 function addNestedFieldItemData(
@@ -328,6 +331,16 @@ async function getProjectTags() {
   projectTags.value = await useProjectTags(props.projectId).get()
 }
 
+function isMultiLevelNested(fieldNested: FieldConfigNested): boolean {
+  for (const field of fieldNested.fields) {
+    if (field.type === FieldType.NESTED) {
+      return true
+    }
+  }
+
+  return false
+}
+
 onActivated(async () => {
   projectData = useProjectData(props.projectId)
   await getProjectTags()
@@ -356,9 +369,18 @@ onDeactivated(() => {
 <template>
   <div class="relative size-full">
     <TransitionSlide :offset="[0, '100%']">
-      <template v-if="nestedEditValue.visible">
+      <template v-if="nestedEditValue.visible && !nestedEditValue.isMultiNested">
         <div class="absolute inset-0 z-[9999]">
           <FormInputNested
+            :item-value="nestedEditValue"
+            @add-item-data="addNestedFieldItemData"
+            @close="closeNestedForm"
+          />
+        </div>
+      </template>
+      <template v-else-if="nestedEditValue.visible && nestedEditValue.isMultiNested">
+        <div class="absolute inset-0 z-[9999]">
+          <FormInputTwoLevelNested
             :item-value="nestedEditValue"
             @add-item-data="addNestedFieldItemData"
             @close="closeNestedForm"
@@ -404,13 +426,28 @@ onDeactivated(() => {
               </template>
             </div>
           </li>
-
+          {{ props.fields }}
           <li
             v-for="(field) in props.fields" :key="field.key" class="w-full space-y-2"
             :class="[field.required ? 'required' : '']"
           >
             <template v-if="field.type !== FieldType.NESTED">
               <FormInputSingular :field="field" :form="$form" />
+            </template>
+            <template v-else-if="field.type === FieldType.NESTED && isMultiLevelNested(field)">
+              <label :for="field.key" class="text-sm">
+                {{ field.name }}
+              </label>
+              {{ nestedFieldsData }}
+              <div
+                class="mt-2 box-border flex justify-center rounded px-2 py-1"
+                :class="nestedFieldsData[field.key]?.length === 0
+                  ? 'border-dashed border-2' : ''"
+              >
+                <Button fluid rounded severity="secondary" class="text-sm" @click="addNewItem(field, true)">
+                  Add new item
+                </Button>
+              </div>
             </template>
             <template v-else>
               <label :for="field.key" class="text-sm">
@@ -466,7 +503,7 @@ onDeactivated(() => {
                 :class="nestedFieldsData[field.key]?.length === 0
                   ? 'border-dashed border-2' : ''"
               >
-                <Button fluid rounded severity="secondary" class="text-sm" @click="addNewItem(field)">
+                <Button fluid rounded severity="secondary" class="text-sm" @click="addNewItem(field, false)">
                   Add new item
                 </Button>
               </div>
