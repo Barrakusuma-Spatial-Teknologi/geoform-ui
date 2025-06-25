@@ -387,7 +387,6 @@ onDeactivated(() => {
               </template>
             </div>
           </li>
-          {{ props.fields }}
           <li
             v-for="(field) in props.fields" :key="field.key" class="w-full space-y-2"
             :class="[field.required ? 'required' : '']"
