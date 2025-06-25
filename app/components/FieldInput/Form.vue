@@ -5,13 +5,13 @@ import { type FormSubmitEvent, Form as PvForm } from "@primevue/forms"
 import { zodResolver } from "@primevue/forms/resolvers/zod"
 import { get } from "es-toolkit/compat"
 import { createZodSchema } from "~/components/FieldInput/form-validation"
+import FormInputNested from "~/components/FieldInput/FormInputNested.vue"
+import FormInputSingular from "~/components/FieldInput/FormInputSingular.vue"
+import FormInputTwoLevelNested from "~/components/FieldInput/FormInputTwoLevelNested.vue"
 import { type FieldConfig, type FieldConfigNested, FieldType } from "~/composables/project/model/project"
 import { useProjectData } from "~/composables/project/project-data"
 import { useProjectTags } from "~/composables/project/project-tags"
 import { useUiBlocker } from "~/composables/ui/blocker"
-import FormInputNested from "./FormInputNested.vue"
-import FormInputSingular from "./FormInputSingular.vue"
-import FormInputTwoLevelNested from "./FormInputTwoLevelNested.vue"
 
 const props = defineProps<{
   projectId: string
