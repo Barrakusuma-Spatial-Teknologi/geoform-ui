@@ -40,7 +40,7 @@ function addNestedFieldItemData(
     return
   }
 
-  if (nestedItemIndex === undefined) {
+  if (nestedItemIndex == null) {
     nestedFieldsData.value[nestedItemKey].push(nestedItemData)
     closeNestedForm()
     return
@@ -113,7 +113,7 @@ function validateNestedInput(e: FormSubmitEvent) {
 function save(e: FormSubmitEvent) {
   const finalData = validateNestedInput(e)
 
-  if (!e.valid || finalData === undefined) {
+  if (!e.valid || finalData == null) {
     toast.add({
       severity: "error",
       summary: "Invalid data",
@@ -121,7 +121,7 @@ function save(e: FormSubmitEvent) {
     return
   }
 
-  if (props.itemValue.index !== undefined) {
+  if (props.itemValue.index == null) {
     emits("addItemData", finalData, props.itemValue.config.key, props.itemValue.index)
     return
   }
