@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { NestedItemValue } from "~/components/FieldInput/type"
-import { type FieldConfigNested, FieldType } from "~/composables/project/model/project"
+import { type FieldConfig, type FieldConfigNested, FieldType } from "~/composables/project/model/project"
 
 const props = defineProps<{
   field: FieldConfigNested
@@ -84,7 +84,6 @@ function formatItemValue(
   }
 
   const value = itemValue[firstKey]
-
   if (!checkboxOption) {
     return value
   }
@@ -102,6 +101,29 @@ function formatItemValue(
   valueText = checkboxOption.find((o) => o.key === value)?.value || ""
   return valueText
 }
+
+function getDeepestFieldAndOptions(field: FieldConfig): { type: FieldType, options?: Record<string, string>[] } {
+  let current = field
+
+  while (current.type === FieldType.NESTED && current.fields?.length > 0) {
+    current = current.fields[0]!
+  }
+
+  switch (current.type) {
+    case FieldType.CHECKBOX:
+      return {
+        type: current.type,
+        options: current.fieldConfig.options,
+      }
+    default:
+      return {
+        type: current.type,
+        options: undefined,
+      }
+  }
+}
+
+const deepestField = computed(() => getDeepestFieldAndOptions(props.field.fields[0]!))
 </script>
 
 <template>
@@ -129,14 +151,21 @@ function formatItemValue(
             </template>
 
             <template v-else-if="props.isMultiLevel && props.field.fields[0]?.type === FieldType.NESTED">
-              <template v-if="props.field.fields[0]?.fields[0]?.type === FieldType.CHECKBOX">
+              <template v-if="deepestField.type === FieldType.CHECKBOX">
                 <InputText
-                  fluid readonly :value="formatItemValue(getFirstNestedItem(value, field.fields[0]!.key), props.field.fields[0].fields[0].fieldConfig.options)"
+                  fluid
+                  readonly
+                  :value="formatItemValue(
+                    getFirstNestedItem(value, field.fields[0]!.key),
+                    deepestField.options,
+                  )"
                 />
               </template>
-              <template v-else-if="props.field.fields[0]?.fields[0]?.type === FieldType.IMAGE">
+
+              <template v-else-if="deepestField.type === FieldType.IMAGE">
                 <Image :src="String(formatItemValue(getFirstNestedItem(value, field.fields[0]!.key)))" />
               </template>
+
               <template v-else>
                 <InputText fluid readonly :value="formatItemValue(getFirstNestedItem(value, props.field.fields[0]!.key))" />
               </template>
