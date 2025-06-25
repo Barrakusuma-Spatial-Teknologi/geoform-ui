@@ -1,5 +1,5 @@
 # Stage 1: Build stage
-FROM node:20-bullseye-slim AS installer
+FROM node:20-alpine AS installer
 
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
@@ -10,9 +10,9 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml* ./
 
 # Install dependencies
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --node-linker=hoisted
 
-FROM node:20-bullseye-slim AS builder
+FROM node:20-alpine AS builder
 
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
@@ -24,7 +24,7 @@ COPY --from=installer /app/node_modules ./node_modules
 COPY . .
 
 # Build the application
-RUN pnpm run build
+RUN pnpm nuxi prepare && pnpm build
 
 # Stage 2: Production stage
 FROM node:20-alpine AS production
@@ -34,10 +34,10 @@ RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
 WORKDIR /app
 # Copy necessary files from builder stage
-COPY --from=builder /app/.output ./.output
+COPY --from=builder /app/.output /app
 
 # Expose the port Nuxt runs on (default is 3000)
 EXPOSE 3000
 
 # Start the application
-CMD ["node", ".output/server/index.mjs"]
+CMD ["node", "/app/server/index.mjs"]
