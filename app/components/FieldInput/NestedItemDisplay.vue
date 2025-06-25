@@ -84,22 +84,18 @@ function formatItemValue(
   }
 
   const value = itemValue[firstKey]
+
   if (!checkboxOption) {
     return value
   }
 
-  let valueText = ""
-
-  if (Array.isArray(value) && typeof value[0] !== "object") {
-    valueText = value
+  if (Array.isArray(value)) {
+    return value
       .map((v) => checkboxOption.find((o) => o.key === String(v))?.value || "")
       .join(", ")
-
-    return valueText
   }
 
-  valueText = checkboxOption.find((o) => o.key === value)?.value || ""
-  return valueText
+  return checkboxOption.find((o) => o.key === value)?.value || ""
 }
 
 function getDeepestFieldAndOptions(field: FieldConfig): { type: FieldType, options?: Record<string, string>[] } {
@@ -109,17 +105,16 @@ function getDeepestFieldAndOptions(field: FieldConfig): { type: FieldType, optio
     current = current.fields[0]!
   }
 
-  switch (current.type) {
-    case FieldType.CHECKBOX:
-      return {
-        type: current.type,
-        options: current.fieldConfig.options,
-      }
-    default:
-      return {
-        type: current.type,
-        options: undefined,
-      }
+  if (current.type === FieldType.CHECKBOX) {
+    return {
+      type: current.type,
+      options: current.fieldConfig.options,
+    }
+  }
+
+  return {
+    type: current.type,
+    options: undefined,
   }
 }
 

@@ -150,7 +150,7 @@ onMounted(() => {
             @add-item-data="addNestedFieldItemData"
             @close="closeNestedForm"
           />
-          <FieldInputFormInputTwoLevelNested
+          <FieldInputFormInputMultilevelNested
             v-else
             :item-value="nestedEditValue"
             @add-item-data="addNestedFieldItemData"
