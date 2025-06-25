@@ -74,7 +74,7 @@ function closeNestedForm() {
 }
 
 const initialValues = computed(() => {
-  return props.itemValue.index !== undefined ? props.itemValue.item : {}
+  return props.itemValue.index != null ? props.itemValue.item : {}
 })
 
 function validateNestedInput(e: FormSubmitEvent) {
@@ -121,7 +121,7 @@ function save(e: FormSubmitEvent) {
     return
   }
 
-  if (props.itemValue.index == null) {
+  if (props.itemValue.index != null) {
     emits("addItemData", finalData, props.itemValue.config.key, props.itemValue.index)
     return
   }
