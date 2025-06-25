@@ -120,7 +120,7 @@ onMounted(() => {
     </template>
 
     <template v-if="field.type === FieldType.NESTED">
-      <ProjectConfigFormFieldNested v-model:field="field" :is-first-nested="false" @remove="emits('remove')" />
+      <ProjectConfigFormFieldNested v-model:field="field" :is-first-level-nested="false" @remove="emits('remove')" />
     </template>
 
     <template

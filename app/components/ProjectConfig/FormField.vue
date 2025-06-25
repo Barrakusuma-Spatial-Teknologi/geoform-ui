@@ -16,7 +16,11 @@ const field = defineModel<FieldConfigWrapper>("field", {
 <template>
   <div :id="`${field.key}_container`" class="w-full">
     <template v-if="field.type === FieldType.NESTED">
-      <ProjectConfigFormFieldNested v-model:field="field" :is-first-nested="true" @remove="emits('remove')" />
+      <ProjectConfigFormFieldNested
+        v-model:field="field"
+        :is-first-level-nested="true"
+        @remove="emits('remove')"
+      />
     </template>
     <template v-else>
       <FormFieldSingular v-model:field="field" @remove="emits('remove')" />

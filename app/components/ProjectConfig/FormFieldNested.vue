@@ -3,7 +3,7 @@ import type { FieldConfigWrapper } from "./formConfig"
 import { type FieldConfigCheckbox, type FieldConfigNested, fieldOptions, FieldType } from "~/composables/project/model/project"
 
 const props = defineProps<{
-  isFirstNested: boolean
+  isFirstLevelNested: boolean
 }>()
 
 const emits = defineEmits<{
@@ -64,8 +64,7 @@ onMounted(() => {
 
 <template>
   <div class="mb-4 box-border w-full space-y-2 rounded-lg bg-surface-300 px-4 py-2 dark:bg-surface-800">
-    {{ field }}
-    <template v-if="props.isFirstNested">
+    <template v-if="props.isFirstLevelNested">
       <IftaLabel fluid class="">
         <InputText :id="field!.key" v-model.lazy="field!.name" size="small" fluid />
         <label :for="field.key">Label</label>
@@ -117,7 +116,7 @@ onMounted(() => {
     <CommonPanel class="rounded-lg bg-surface-950">
       <template #title>
         <div class="text-sm">
-          Advanced Configuration INI
+          Advanced Configuration
         </div>
       </template>
 

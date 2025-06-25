@@ -179,47 +179,19 @@ function editItem(
   fieldConfig: FieldConfigNested,
   value: NestedItemValue,
   itemIndex: number,
+  isMultiNested: boolean,
 ) {
   nestedEditValue.config = fieldConfig
   nestedEditValue.item = value
   nestedEditValue.index = itemIndex
   nestedEditValue.visible = true
+  nestedEditValue.isMultiNested = isMultiNested
 }
 
 function closeNestedForm() {
   nestedEditValue.visible = false
   nestedEditValue.item = {}
   nestedEditValue.index = undefined
-}
-
-function formatItemValue(
-  itemValue: NestedItemValue,
-  checkboxOption?: Record<string, string>[],
-) {
-  const firstKey = Object.keys(itemValue)[0]
-
-  if (!firstKey) {
-    return
-  }
-
-  const value = itemValue[firstKey]
-
-  if (!checkboxOption) {
-    return value
-  }
-
-  let valueText = ""
-
-  if (Array.isArray(value)) {
-    valueText = value
-      .map((v) => checkboxOption.find((o) => o.key === v)?.value || "")
-      .join(", ")
-
-    return valueText
-  }
-
-  valueText = checkboxOption.find((o) => o.key === value)?.value || ""
-  return valueText
 }
 
 /**
@@ -331,16 +303,6 @@ async function getProjectTags() {
   projectTags.value = await useProjectTags(props.projectId).get()
 }
 
-function isMultiLevelNested(fieldNested: FieldConfigNested): boolean {
-  for (const field of fieldNested.fields) {
-    if (field.type === FieldType.NESTED) {
-      return true
-    }
-  }
-
-  return false
-}
-
 onActivated(async () => {
   projectData = useProjectData(props.projectId)
   await getProjectTags()
@@ -369,18 +331,17 @@ onDeactivated(() => {
 <template>
   <div class="relative size-full">
     <TransitionSlide :offset="[0, '100%']">
-      <template v-if="nestedEditValue.visible && !nestedEditValue.isMultiNested">
+      <template v-if="nestedEditValue.visible">
         <div class="absolute inset-0 z-[9999]">
           <FormInputNested
+            v-if="!nestedEditValue.isMultiNested"
             :item-value="nestedEditValue"
             @add-item-data="addNestedFieldItemData"
             @close="closeNestedForm"
           />
-        </div>
-      </template>
-      <template v-else-if="nestedEditValue.visible && nestedEditValue.isMultiNested">
-        <div class="absolute inset-0 z-[9999]">
+
           <FormInputTwoLevelNested
+            v-else
             :item-value="nestedEditValue"
             @add-item-data="addNestedFieldItemData"
             @close="closeNestedForm"
@@ -435,78 +396,24 @@ onDeactivated(() => {
               <FormInputSingular :field="field" :form="$form" />
             </template>
             <template v-else-if="field.type === FieldType.NESTED && isMultiLevelNested(field)">
-              <label :for="field.key" class="text-sm">
-                {{ field.name }}
-              </label>
-              {{ nestedFieldsData }}
-              <div
-                class="mt-2 box-border flex justify-center rounded px-2 py-1"
-                :class="nestedFieldsData[field.key]?.length === 0
-                  ? 'border-dashed border-2' : ''"
-              >
-                <Button fluid rounded severity="secondary" class="text-sm" @click="addNewItem(field, true)">
-                  Add new item
-                </Button>
-              </div>
+              <FieldInputNestedItemDisplay
+                :field="field"
+                :nested-fields-data="nestedFieldsData"
+                :is-multi-level="true"
+                @edit="(value, index, isMultiLevel) => editItem(field, value, index, isMultiLevel)"
+                @delete="(index) => deleteItem(field.key, index)"
+                @add="addNewItem"
+              />
             </template>
             <template v-else>
-              <label :for="field.key" class="text-sm">
-                {{ field.name }}
-              </label>
-              <template v-if="nestedFieldsData[field.key] != null">
-                <ul
-                  :class="nestedFieldsData[field.key]?.length !== 0
-                    ? 'dark:bg-surface-700 p-3 rounded bg-surface-200'
-                    : ''"
-                >
-                  <li
-                    v-for="(value, nestedItemIndex) in nestedFieldsData[field.key]"
-                    :key="nestedItemIndex"
-                    class="remove-required flex w-full space-x-2 "
-                  >
-                    <div class="grow rounded">
-                      <IftaLabel>
-                        <label :for="field.fields[0]?.key">{{ field.fields[0]?.name }}</label>
-                        <template v-if="field.fields[0]?.type === FieldType.CHECKBOX">
-                          <InputText
-                            fluid readonly :value="formatItemValue(value, field.fields[0].fieldConfig.options)"
-                          />
-                        </template>
-                        <template v-else-if="field.fields[0]?.type === FieldType.IMAGE">
-                          <Image :src="formatItemValue(value) as string" />
-                        </template>
-                        <template v-else>
-                          <InputText fluid readonly :value="formatItemValue(value)" />
-                        </template>
-                      </IftaLabel>
-                    </div>
-                    <div class="flex grow-0 justify-around space-x-1 ">
-                      <Button
-                        severity="secondary" variant="text" size="small"
-                        @click="editItem(field, value, Number(nestedItemIndex))"
-                      >
-                        <i class="i-[solar--pen-linear] text-lg" />
-                      </Button>
-                      <Button
-                        severity="secondary" variant="text" size="small"
-                        @click="deleteItem(field.key, Number(nestedItemIndex))"
-                      >
-                        <i class="i-[solar--trash-bin-2-linear] text-lg" />
-                      </Button>
-                    </div>
-                  </li>
-                </ul>
-              </template>
-
-              <div
-                class="mt-2 box-border flex justify-center rounded px-2 py-1"
-                :class="nestedFieldsData[field.key]?.length === 0
-                  ? 'border-dashed border-2' : ''"
-              >
-                <Button fluid rounded severity="secondary" class="text-sm" @click="addNewItem(field, false)">
-                  Add new item
-                </Button>
-              </div>
+              <FieldInputNestedItemDisplay
+                :field="field"
+                :nested-fields-data="nestedFieldsData"
+                :is-multi-level="false"
+                @edit="(value, index, isMultiLevel) => editItem(field, value, index, isMultiLevel)"
+                @delete="(index) => deleteItem(field.key, index)"
+                @add="addNewItem"
+              />
             </template>
           </li>
         </ul>

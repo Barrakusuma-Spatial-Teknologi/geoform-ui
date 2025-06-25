@@ -1,7 +1,7 @@
 import type { FieldConfigNested } from "~/composables/project/model/project"
 
 export interface NestedItemValue {
-  [key: string]: string | number | boolean | Date
+  [key: string]: string | number | boolean | Date | NestedItemValue[] | NestedItemValue
 }
 
 export interface NestedEditValue {
@@ -9,5 +9,5 @@ export interface NestedEditValue {
   config: FieldConfigNested
   visible: boolean
   index?: number
-  isMultiNested: boolean
+  isMultiNested?: boolean
 }
