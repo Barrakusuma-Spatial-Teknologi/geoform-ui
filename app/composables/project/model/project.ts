@@ -103,7 +103,7 @@ interface FieldConfigBoolean extends FC<FieldType.BOOLEAN> {
 }
 
 export interface FieldConfigNested extends FC<FieldType.NESTED> {
-  fields: FieldConfigSingular[]
+  fields: FieldConfig[]
   fieldConfig?: {
     minItem?: number
   }

@@ -2,7 +2,7 @@
 import type { FieldConfigWrapper } from "~/components/ProjectConfig/formConfig"
 
 import FormFieldSingular from "~/components/ProjectConfig/FormFieldSingular.vue"
-import { fieldOptions, FieldType } from "~/composables/project/model/project"
+import { FieldType } from "~/composables/project/model/project"
 
 const emits = defineEmits<{
   remove: []
@@ -16,10 +16,14 @@ const field = defineModel<FieldConfigWrapper>("field", {
 <template>
   <div :id="`${field.key}_container`" class="w-full">
     <template v-if="field.type === FieldType.NESTED">
-      <ProjectConfigFormFieldNested v-model:field="field" @remove="emits('remove')" />
+      <ProjectConfigFormFieldNested
+        v-model:field="field"
+        :is-first-level-nested="true"
+        @remove="emits('remove')"
+      />
     </template>
     <template v-else>
-      <FormFieldSingular v-model:field="field" :field-options="fieldOptions" @remove="emits('remove')" />
+      <FormFieldSingular v-model:field="field" @remove="emits('remove')" />
     </template>
   </div>
 </template>

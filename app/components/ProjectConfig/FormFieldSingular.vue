@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { FieldConfigSingularWrapper } from "~/components/ProjectConfig/formConfig"
+import type { FieldConfigWrapper } from "~/components/ProjectConfig/formConfig"
 import { nanoid } from "nanoid"
 import {
   type FieldConfigCheckbox,
@@ -7,18 +7,15 @@ import {
   type FieldConfigImage,
   type FieldConfigNumber,
   type FieldConfigText,
+  fieldOptions,
   FieldType,
 } from "~/composables/project/model/project"
-
-const props = defineProps<{
-  fieldOptions: FieldType[] | Exclude<FieldType, FieldType.NESTED>[]
-}>()
 
 const emits = defineEmits<{
   remove: []
 }>()
 
-const field = defineModel<FieldConfigSingularWrapper>("field", {
+const field = defineModel<FieldConfigWrapper>("field", {
   required: true,
 })
 
@@ -53,7 +50,7 @@ onMounted(() => {
         v-model="field!.type"
         :disabled="field.strictChange"
         input-id="field-type"
-        :options="props.fieldOptions"
+        :options="fieldOptions"
         class="w-full" variant="filled"
         @update:model-value="(v) => {
           if (v === FieldType.CHECKBOX) {
@@ -122,8 +119,12 @@ onMounted(() => {
       </div>
     </template>
 
+    <template v-if="field.type === FieldType.NESTED">
+      <ProjectConfigFormFieldNested v-model:field="field" :is-first-level-nested="false" @remove="emits('remove')" />
+    </template>
+
     <template
-      v-if="field!.type !== FieldType.CHECKBOX && field!.type !== FieldType.BOOLEAN"
+      v-if="field!.type !== FieldType.CHECKBOX && field!.type !== FieldType.BOOLEAN && field.type !== FieldType.NESTED"
     >
       <CommonPanel class="rounded-lg bg-surface-300/80 dark:bg-surface-950">
         <template #title>
@@ -255,20 +256,22 @@ onMounted(() => {
       </CommonPanel>
     </template>
 
-    <div class="flex w-full justify-between border-t border-surface-200 dark:border-surface-700">
-      <div class="flex items-center gap-2  text-sm">
-        <Checkbox :id="`${field.key}_required`" v-model="field!.required" binary />
-        <label :for="`${field.key}_required`"> Required </label>
-      </div>
+    <template v-if="field.type !== FieldType.NESTED">
+      <div class="flex w-full justify-between border-t border-surface-200 dark:border-surface-700">
+        <div class="flex items-center gap-2  text-sm">
+          <Checkbox :id="`${field.key}_required`" v-model="field!.required" binary />
+          <label :for="`${field.key}_required`"> Required </label>
+        </div>
 
-      <Button
-        size="small" variant="text" severity="secondary" :disabled="field.strictChange" @click="() => {
-          emits('remove')
-        }"
-      >
-        <i class="i-[solar--trash-bin-trash-bold] text-lg" />
-      </Button>
-    </div>
+        <Button
+          size="small" variant="text" severity="secondary" :disabled="field.strictChange" @click="() => {
+            emits('remove')
+          }"
+        >
+          <i class="i-[solar--trash-bin-trash-bold] text-lg" />
+        </Button>
+      </div>
+    </template>
   </div>
 </template>
 

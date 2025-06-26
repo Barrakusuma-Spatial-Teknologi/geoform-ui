@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import type { FieldConfigSingularWrapper, FieldConfigWrapper } from "./formConfig"
+import type { FieldConfigWrapper } from "./formConfig"
 import { type FieldConfigCheckbox, type FieldConfigNested, fieldOptions, FieldType } from "~/composables/project/model/project"
-import { fieldOptionsWithoutNestedType } from "~/composables/project/model/project"
+
+const props = defineProps<{
+  isFirstLevelNested: boolean
+}>()
 
 const emits = defineEmits<{
   remove: []
@@ -61,40 +64,41 @@ onMounted(() => {
 
 <template>
   <div class="mb-4 box-border w-full space-y-2 rounded-lg bg-surface-300 px-4 py-2 dark:bg-surface-800">
-    <IftaLabel fluid class="">
-      <InputText :id="field!.key" v-model.lazy="field!.name" size="small" fluid />
-      <label :for="field.key">Label</label>
-    </IftaLabel>
+    <template v-if="props.isFirstLevelNested">
+      <IftaLabel fluid class="">
+        <InputText :id="field!.key" v-model.lazy="field!.name" size="small" fluid />
+        <label :for="field.key">Label</label>
+      </IftaLabel>
 
-    <IftaLabel fluid>
-      <Select
-        v-model="field!.type" input-id="field-type" :options="fieldOptions" class="w-full" variant="filled"
-        @update:model-value="(v) => {
-          if (v === FieldType.CHECKBOX) {
-            (field as FieldConfigCheckbox).fieldConfig = {
-              options: [{
-                key: generateLighterId(),
-                value: '',
-              }],
-              multiple: true,
+      <IftaLabel fluid>
+        <Select
+          v-model="field!.type" input-id="field-type" :options="fieldOptions" class="w-full" variant="filled"
+          @update:model-value="(v) => {
+            if (v === FieldType.CHECKBOX) {
+              (field as FieldConfigCheckbox).fieldConfig = {
+                options: [{
+                  key: generateLighterId(),
+                  value: '',
+                }],
+                multiple: true,
+              }
             }
-          }
-          else {
-            if ('fieldConfig' in field) {
-              field!.fieldConfig = {}
+            else {
+              if ('fieldConfig' in field) {
+                field!.fieldConfig = {}
+              }
             }
-          }
-        }"
-      />
-      <label for="field-type">Type</label>
-    </IftaLabel>
+          }"
+        />
+        <label for="field-type">Type</label>
+      </IftaLabel>
+    </template>
 
     <template v-if="field.type === FieldType.NESTED">
       <div class="max-h-60 overflow-y-auto">
         <template v-for="(_field, index) in field.fields" :key="index">
           <ProjectConfigFormFieldSingular
-            v-model:field="(field.fields[index]! as FieldConfigSingularWrapper)"
-            :field-options="fieldOptionsWithoutNestedType"
+            v-model:field="(field.fields[index]! as FieldConfigWrapper)"
             @remove="() => {
               (field as FieldConfigNested).fields.splice(index, 1)
             }"
@@ -108,6 +112,7 @@ onMounted(() => {
         Add new field
       </Button>
     </div>
+
     <CommonPanel class="rounded-lg bg-surface-950">
       <template #title>
         <div class="text-sm">
